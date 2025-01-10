@@ -25,7 +25,7 @@ const { description, title } = Astro.props
       rel="stylesheet"
     />
 
-    <title>{title ?? 'Astro Starter'}</title>
+    <title>{`CursedTale${title ? ` | ${title}` : ''}`}</title>
   </head>
 
   <body class="bg-gray-900 text-white">
