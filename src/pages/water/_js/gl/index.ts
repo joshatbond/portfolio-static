@@ -1,5 +1,7 @@
 import { to } from '../utils/apply'
 import { Matrix, hasFloat32Array } from './Matrix'
+import { Mesh } from './Mesh'
+import { Shader } from './Shader'
 import { Vector } from './Vector'
 
 /**
@@ -9,12 +11,21 @@ import { Vector } from './Vector'
 const ENUM = 0x12340000
 
 export function GL(options: WebGLContextAttributes = {}) {
-  return to(() => glCore(options))
-    .apply(matrixStack)
-    .get()
+  return (
+    to(() => glCore(options))
+      .apply(matrixStack)
+      // UNCOMMENT to enter debug mode
+      // .apply(({ ctx }) => immediateMode(ctx))
+      .get()
+  )
 }
 export type GL = ReturnType<typeof GL>
 
+/**
+ * Instantiates a canvas and web-gl 2 context
+ *
+ * @param options Additional options to pass to the web-gl context
+ */
 function glCore(options: WebGLContextAttributes) {
   const canvas = document.createElement('canvas')
   canvas.width = 800
@@ -35,6 +46,10 @@ function glCore(options: WebGLContextAttributes) {
   }
 }
 
+/**
+ * Implement the OpenGL modelview and projection matrix stacks, along with some
+ * other useful GLU matrix functions.
+ */
 function matrixStack() {
   const MODEL_VIEW = ENUM | 1
   const PROJECTION = ENUM | 2
@@ -287,5 +302,53 @@ function matrixStack() {
         resultMatrix
       ).transformPoint(point)
     },
+  }
+}
+
+/**
+ * Provide an implementation of OpenGL's deprecated immediate mode. This is
+ * deprecated for a reason: constantly re-specifying the geometry is a BAD
+ * idea for performance. You should use a `Mesh` instead (which specifies)
+ * the geometry once and caches it on the graphics card.
+ *
+ * Still, nothing beats a quick `gl.begin(gl.POINTS); gl.vertex(1,2,3); gl.end();`
+ * for debugging. This intentionally doesn't implement fixed-function lighting
+ * because its only meant for quick debugging tasks.
+ */
+function immediateMode(context: WebGL2RenderingContext) {
+  const immediateMode = {
+    mesh: new Mesh(context, { coords: true, colors: true, triangles: false }),
+    mode: -1,
+    coord: [0, 0, 0, 0],
+    color: [1, 1, 1, 1],
+    pointSize: 1,
+    shader: new Shader(
+      context,
+      '\
+      uniform float pointSize;\
+      varying vec4 color;\
+      varying vec4 coord;\
+      void main() {\
+        color = gl_Color;\
+        coord = gl_TexCoord;\
+        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
+        gl_PointSize = pointSize;\
+      }\
+    ',
+      '\
+      uniform sampler2D texture;\
+      uniform float pointSize;\
+      uniform bool useTexture;\
+      varying vec4 color;\
+      varying vec4 coord;\
+      void main() {\
+        gl_FragColor = color;\
+        if (useTexture) gl_FragColor *= texture2D(texture, coord.xy);\
+      }\
+    '
+    ),
+  }
+  return {
+    pointSize() {},
   }
 }
