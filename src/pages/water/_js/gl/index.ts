@@ -1,4 +1,6 @@
+import { controller } from '../controller'
 import { to } from '../utils/apply'
+import { pubSubBuilder } from '../utils/pubSub'
 import { Matrix, hasFloat32Array } from './Matrix'
 import { Mesh } from './Mesh'
 import { Shader } from './Shader'
@@ -16,6 +18,18 @@ export function GL(options: WebGLContextAttributes = {}) {
       .apply(matrixStack)
       // UNCOMMENT to enter debug mode
       // .apply(({ ctx }) => immediateMode(ctx))
+      .apply(gl => addEventListeners(gl.ctx))
+      .apply(gl =>
+        additionalStack(
+          gl.PROJECTION,
+          gl.MODEL_VIEW,
+          gl.ctx,
+          gl.onKeyEvent,
+          gl.matrixMode,
+          gl.loadIdentity,
+          gl.perspective
+        )
+      )
       .get()
   )
 }
@@ -351,4 +365,255 @@ function immediateMode(context: WebGL2RenderingContext) {
   return {
     pointSize() {},
   }
+}
+
+/**
+ * Improved mouse events
+ *
+ * This adds event listeners on the `gl.canvas` element that call
+ * `gl.onmousedown`, `gl.onmousemove()`, and `gl.onmouseup()` with
+ * an augmented event object. The event object also has the properties `x`, `y`,
+ * `deltaX`, `deltaY`, and `dragging`.
+ */
+function addEventListeners(context: WebGL2RenderingContext) {
+  const mouseBroker = pubSubBuilder<
+    'mouseUp' | 'mouseDown' | 'mouseMove',
+    ReturnType<typeof augment>
+  >()
+  const keyBroker = controller(
+    { onDown: [' ', 'L', 'G'] },
+    { caseSensitive: false }
+  )
+  let oldX = 0,
+    oldY = 0,
+    buttons: Record<string, boolean | undefined> = {},
+    hasOld = false
+
+  /**
+   * Augment the default MouseEvent to include writeable `x`, `y`, `deltaX`,
+   * `deltaY`, and `dragging` properties.
+   */
+  function augment(original: MouseEvent) {
+    const e = {} as MouseEvent & {
+      original: MouseEvent
+      x: number
+      y: number
+      deltaX: number
+      deltaY: number
+      dragging: boolean | undefined
+    }
+    for (const name in original) {
+      //@ts-expect-error
+      if (typeof original[name] === 'function') {
+        //@ts-expect-error
+        e[name] = (function (callback) {
+          return function () {
+            callback.apply(original, arguments)
+          }
+          //@ts-expect-error
+        })(original[name])
+      } else {
+        //@ts-expect-error
+        e[name] = original[name]
+      }
+    }
+    e.original = original
+    e.x = e.pageX
+    e.y = e.pageY
+
+    for (
+      let obj: HTMLElement | null = context.canvas as HTMLElement;
+      obj;
+      obj = obj.offsetParent as HTMLElement | null
+    ) {
+      e.x -= obj.offsetLeft
+      e.y -= obj.offsetTop
+    }
+    if (hasOld) {
+      e.deltaX = e.x - oldX
+      e.deltaY = e.y - oldY
+    } else {
+      e.deltaX = 0
+      e.deltaY = 0
+      hasOld = true
+    }
+    oldX = e.x
+    oldY = e.y
+    e.dragging = isDragging()
+    e.preventDefault = function () {
+      e.original.preventDefault()
+    }
+    e.stopPropagation = function () {
+      e.original.stopPropagation()
+    }
+
+    return e
+  }
+  /**
+   * Checks whether any mouse buttons are currently pressed
+   */
+  function isDragging() {
+    for (const b in buttons) {
+      if (b in buttons && buttons[b]) return true
+    }
+    return false
+  }
+
+  function mousedown(e: MouseEvent | Event) {
+    if (!(e instanceof MouseEvent)) return
+
+    if (!isDragging()) {
+      document.addEventListener('mousemove', mousemove)
+      document.addEventListener('mouseup', mouseup)
+      context.canvas.removeEventListener('mousemove', mousemove)
+      context.canvas.removeEventListener('mouseup', mouseup)
+    }
+    buttons[e.button] = true
+    mouseBroker.publish('mouseDown', augment(e))
+    e.preventDefault()
+  }
+  function mousemove(e: MouseEvent | Event) {
+    if (!(e instanceof MouseEvent)) return
+
+    mouseBroker.publish('mouseMove', augment(e))
+    e.preventDefault()
+  }
+  function mouseup(e: MouseEvent | Event) {
+    if (!(e instanceof MouseEvent)) return
+
+    buttons[e.button] = false
+    if (!isDragging()) {
+      document.removeEventListener('mousemove', mousemove)
+      document.removeEventListener('mouseup', mouseup)
+      context.canvas.addEventListener('mousemove', mousemove)
+      context.canvas.addEventListener('mouseup', mouseup)
+    }
+
+    mouseBroker.publish('mouseUp', augment(e))
+    e.preventDefault()
+  }
+  function reset() {
+    hasOld = false
+  }
+  function resetAll() {
+    buttons = {}
+    hasOld = false
+  }
+
+  context.canvas.addEventListener('mousedown', mousedown)
+  context.canvas.addEventListener('mousemove', mousemove)
+  context.canvas.addEventListener('mouseup', mouseup)
+  context.canvas.addEventListener('mouseover', reset)
+  context.canvas.addEventListener('mouseout', reset)
+  document.addEventListener('contextmenu', resetAll)
+
+  return {
+    onMouseEvent: mouseBroker.subscribe,
+    onKeyEvent: keyBroker.subscribe,
+  }
+}
+
+function additionalStack(
+  MODEL_VIEW: ReturnType<typeof matrixStack>['MODEL_VIEW'],
+  PROJECTION: ReturnType<typeof matrixStack>['PROJECTION'],
+  context: WebGL2RenderingContext,
+  subscribe: ReturnType<typeof controller>['subscribe'],
+  matrixMode: ReturnType<typeof matrixStack>['matrixMode'],
+  loadIdentity: ReturnType<typeof matrixStack>['loadIdentity'],
+  perspective: ReturnType<typeof matrixStack>['perspective']
+) {
+  const updateBroker = pubSubBuilder<'frame', number>()
+  let paused: boolean = false
+  let prevTime: number | undefined = undefined
+  subscribe(' ', () => {
+    paused = !paused
+  })
+
+  return {
+    /**
+     * Call `gl.animate()` to provide an animation loop that will repeatedly
+     * publish update events that can be listened to with the `gl.onUpdate`
+     * method.
+     */
+    animate() {
+      requestAnimationFrame(update)
+      update(0)
+
+      function update(currentTime: number) {
+        if (!prevTime) prevTime = currentTime
+        prevTime = currentTime
+
+        if (!paused) updateBroker.publish('frame', currentTime - prevTime)
+        requestAnimationFrame(update)
+      }
+    },
+    /**
+     * Provide an easy way to get a fullscreen app running, including an
+     * automatic 3d perspective projection matrix by default. This should
+     * only ever be called once.
+     */
+    fullscreen(
+      options: {
+        padding?: {
+          top?: number
+          right?: number
+          bottom?: number
+          left?: number
+        }
+        camera?: false | { fov?: number; near?: number; far?: number }
+      } = {}
+    ) {
+      if (!document.body) {
+        throw new Error(
+          `document.body doesn't exist yet (call gl.fullscreen() from window.onload() or from inside the <body> tag.)`
+        )
+      }
+      const top = options?.padding?.top ?? 0
+      const right = options?.padding?.right ?? 0
+      const bottom = options?.padding?.bottom ?? 0
+      const left = options?.padding?.left ?? 0
+      const fov = cameraValue(options.camera, 'fov', 45)
+      const near = cameraValue(options.camera, 'near', 0.1)
+      const far = cameraValue(options.camera, 'far', 1000)
+
+      if (context.canvas instanceof OffscreenCanvas) return
+      document.body.appendChild(context.canvas)
+      document.body.style.overflow = 'hidden'
+      context.canvas.style.position = 'absolute'
+      context.canvas.style.left = `${left}px`
+      context.canvas.style.top = `${top}px`
+
+      resize()
+      document.addEventListener('resize', resize)
+
+      function resize() {
+        context.canvas.width = window.innerWidth - left - right
+        context.canvas.height = window.innerHeight - top - bottom
+        context.viewport(0, 0, context.canvas.width, context.canvas.height)
+        if (options.camera || !('camera' in options)) {
+          matrixMode(PROJECTION)
+          loadIdentity()
+          perspective(
+            fov,
+            context.canvas.width / context.canvas.height,
+            near,
+            far
+          )
+          matrixMode(MODEL_VIEW)
+        }
+
+        updateBroker.publish('frame', 0)
+      }
+    },
+  }
+}
+
+function cameraValue(
+  options: undefined | false | { fov?: number; near?: number; far?: number },
+  key: 'fov' | 'near' | 'far',
+  defaultValue: number
+) {
+  return typeof options === 'object' && key in options && options[key]
+    ? options[key]
+    : defaultValue
 }
