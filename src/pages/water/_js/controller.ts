@@ -1,11 +1,16 @@
 import { pubSubBuilder } from './utils/pubSub'
 
-export function controller(keyConfig: { onDown?: string[]; onUp?: string[] }) {
+/**
+ *
+ * @param keyConfig An object defining the keys that should be observed
+ * @param options An optional object to specify how the controller should behave
+ * @returns
+ */
+export function controller(
+  keyConfig: { onDown: string[]; onUp?: string[] },
+  options: { caseSensitive: boolean } = { caseSensitive: true }
+) {
   const keyBroker = pubSubBuilder<string, { key: string }>()
-  const mouseBroker = pubSubBuilder<
-    'mouseUp' | 'mouseDown' | 'mousePress',
-    MouseEvent
-  >()
 
   if (keyConfig.onDown) {
     document.addEventListener('keydown', keyHandler('onDown'))
@@ -15,18 +20,15 @@ export function controller(keyConfig: { onDown?: string[]; onUp?: string[] }) {
   }
 
   return {
-    subscribe: {
-      keyboard: keyBroker.subscribe,
-      mouse: mouseBroker.subscribe,
-    },
+    subscribe: keyBroker.subscribe,
   }
 
   function keyHandler(type: keyof typeof keyConfig) {
     return function handler(event: KeyboardEvent) {
-      if (!keyConfig[type]) return
-
-      for (const key of keyConfig[type]) {
-        if (event.key === key) keyBroker.publish(type, { key })
+      const config = keyConfig[type] ?? keyConfig.onDown
+      for (const key of config) {
+        if ((options.caseSensitive ? key : key.toLowerCase()) === event.key)
+          keyBroker.publish(type, { key })
       }
     }
   }
