@@ -1,11 +1,29 @@
 import { GL } from './gl'
+import { Cubemap } from './gl/cubemap'
 
 const loadingEl = document.getElementById('loading')
+const imageXNeg = document.getElementById('xneg') as HTMLImageElement | null
+const imageXPos = document.getElementById('xpos') as HTMLImageElement | null
+const imageYNeg = document.getElementById('yneg') as HTMLImageElement | null
+const imageYPos = document.getElementById('ypos') as HTMLImageElement | null
+const imageZNeg = document.getElementById('zneg') as HTMLImageElement | null
+const imageZPos = document.getElementById('zpos') as HTMLImageElement | null
 
 window.onerror = handleError
 const gl = GL()
+let cubeMap: Cubemap
 
 function main() {
+  if (
+    !imageXNeg ||
+    !imageXPos ||
+    !imageYNeg ||
+    !imageYPos ||
+    !imageZNeg ||
+    !imageZPos
+  ) {
+    throw new Error('Missing cubemap images')
+  }
   const ratio = window.devicePixelRatio ?? 1
   const helpEL = document.getElementById('help')
 
@@ -26,6 +44,14 @@ function main() {
   }
   document.body.appendChild(gl.canvas)
   gl.ctx.clearColor(0, 0, 0, 1)
+  cubeMap = new Cubemap(gl.ctx, {
+    xneg: imageXNeg,
+    xpos: imageXPos,
+    yneg: imageYNeg,
+    ypos: imageYPos,
+    zneg: imageZNeg,
+    zpos: imageZPos,
+  })
 }
 
 function draw() {}
