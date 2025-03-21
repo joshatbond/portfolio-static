@@ -19,17 +19,7 @@ export function GL(options: WebGLContextAttributes = {}) {
       // UNCOMMENT to enter debug mode
       // .apply(({ ctx }) => immediateMode(ctx))
       .apply(gl => addEventListeners(gl.ctx))
-      .apply(gl =>
-        additionalStack(
-          gl.PROJECTION,
-          gl.MODEL_VIEW,
-          gl.ctx,
-          gl.onKeyEvent,
-          gl.matrixMode,
-          gl.loadIdentity,
-          gl.perspective
-        )
-      )
+      .apply(gl => animationStack(gl.onKeyEvent))
       .get()
   )
 }
@@ -513,15 +503,7 @@ function addEventListeners(context: WebGL2RenderingContext) {
   }
 }
 
-function additionalStack(
-  MODEL_VIEW: ReturnType<typeof matrixStack>['MODEL_VIEW'],
-  PROJECTION: ReturnType<typeof matrixStack>['PROJECTION'],
-  context: WebGL2RenderingContext,
-  subscribe: ReturnType<typeof controller>['subscribe'],
-  matrixMode: ReturnType<typeof matrixStack>['matrixMode'],
-  loadIdentity: ReturnType<typeof matrixStack>['loadIdentity'],
-  perspective: ReturnType<typeof matrixStack>['perspective']
-) {
+function animationStack(subscribe: ReturnType<typeof controller>['subscribe']) {
   const updateBroker = pubSubBuilder<'frame', number>()
   let paused: boolean = false
   let prevTime: number | undefined = undefined
@@ -547,73 +529,5 @@ function additionalStack(
         requestAnimationFrame(update)
       }
     },
-    /**
-     * Provide an easy way to get a fullscreen app running, including an
-     * automatic 3d perspective projection matrix by default. This should
-     * only ever be called once.
-     */
-    fullscreen(
-      options: {
-        padding?: {
-          top?: number
-          right?: number
-          bottom?: number
-          left?: number
-        }
-        camera?: false | { fov?: number; near?: number; far?: number }
-      } = {}
-    ) {
-      if (!document.body) {
-        throw new Error(
-          `document.body doesn't exist yet (call gl.fullscreen() from window.onload() or from inside the <body> tag.)`
-        )
-      }
-      const top = options?.padding?.top ?? 0
-      const right = options?.padding?.right ?? 0
-      const bottom = options?.padding?.bottom ?? 0
-      const left = options?.padding?.left ?? 0
-      const fov = cameraValue(options.camera, 'fov', 45)
-      const near = cameraValue(options.camera, 'near', 0.1)
-      const far = cameraValue(options.camera, 'far', 1000)
-
-      if (context.canvas instanceof OffscreenCanvas) return
-      document.body.appendChild(context.canvas)
-      document.body.style.overflow = 'hidden'
-      context.canvas.style.position = 'absolute'
-      context.canvas.style.left = `${left}px`
-      context.canvas.style.top = `${top}px`
-
-      resize()
-      document.addEventListener('resize', resize)
-
-      function resize() {
-        context.canvas.width = window.innerWidth - left - right
-        context.canvas.height = window.innerHeight - top - bottom
-        context.viewport(0, 0, context.canvas.width, context.canvas.height)
-        if (options.camera || !('camera' in options)) {
-          matrixMode(PROJECTION)
-          loadIdentity()
-          perspective(
-            fov,
-            context.canvas.width / context.canvas.height,
-            near,
-            far
-          )
-          matrixMode(MODEL_VIEW)
-        }
-
-        updateBroker.publish('frame', 0)
-      }
-    },
   }
-}
-
-function cameraValue(
-  options: undefined | false | { fov?: number; near?: number; far?: number },
-  key: 'fov' | 'near' | 'far',
-  defaultValue: number
-) {
-  return typeof options === 'object' && key in options && options[key]
-    ? options[key]
-    : defaultValue
 }
