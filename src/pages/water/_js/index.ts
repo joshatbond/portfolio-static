@@ -1,5 +1,5 @@
+import { Cubemap } from './cubemap'
 import { GL } from './gl'
-import { Cubemap } from './gl/cubemap'
 
 const loadingEl = document.getElementById('loading')
 const imageXNeg = document.getElementById('xneg') as HTMLImageElement | null
