@@ -1,29 +1,20 @@
 import { Cubemap } from './cubemap'
 import { GL } from './gl'
+import { getElementById } from './utils/dom'
 
-const loadingEl = document.getElementById('loading')
-const imageXNeg = document.getElementById('xneg') as HTMLImageElement | null
-const imageXPos = document.getElementById('xpos') as HTMLImageElement | null
-const imageYNeg = document.getElementById('yneg') as HTMLImageElement | null
-const imageYPos = document.getElementById('ypos') as HTMLImageElement | null
-const imageZNeg = document.getElementById('zneg') as HTMLImageElement | null
-const imageZPos = document.getElementById('zpos') as HTMLImageElement | null
+const loadingEl = getElementById('loading')
+const imageXNeg = getElementById<HTMLImageElement>('xneg')
+const imageXPos = getElementById<HTMLImageElement>('xpos')
+const imageYNeg = getElementById<HTMLImageElement>('yneg')
+const imageYPos = getElementById<HTMLImageElement>('ypos')
+const imageZNeg = getElementById<HTMLImageElement>('zneg')
+const imageZPos = getElementById<HTMLImageElement>('zpos')
 
 window.onerror = handleError
 const gl = GL()
 let cubeMap: Cubemap
 
 function main() {
-  if (
-    !imageXNeg ||
-    !imageXPos ||
-    !imageYNeg ||
-    !imageYPos ||
-    !imageZNeg ||
-    !imageZPos
-  ) {
-    throw new Error('Missing cubemap images')
-  }
   const ratio = window.devicePixelRatio ?? 1
   const helpEL = document.getElementById('help')
 
@@ -61,7 +52,6 @@ function handleError(error: string | Event) {
     console.error(error)
     return
   }
-  if (!loadingEl) return
   var html = text2html(error)
   if (html == 'WebGL not supported') {
     html =
