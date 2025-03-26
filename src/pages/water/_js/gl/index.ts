@@ -57,7 +57,6 @@ function glCore(options: WebGLContextAttributes) {
 function matrixStack() {
   const MODEL_VIEW = ENUM | 1
   const PROJECTION = ENUM | 2
-  console.log(MODEL_VIEW, PROJECTION)
   const tempMatrix = new Matrix()
   /**
    * A matrix to cache any results
