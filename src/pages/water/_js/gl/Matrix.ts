@@ -28,8 +28,6 @@ export class Matrix {
     this.m = hasFloat32Array ? new Float32Array(m) : m
   }
 
-  // Instance Methods
-
   /**
    * Returns the matrix that when multiplied with this matrix results in the identity matrix.
    *
@@ -38,7 +36,6 @@ export class Matrix {
   public inverse(): Matrix {
     return Matrix.inverse(this, new Matrix())
   }
-
   /**
    * Returns the concatenation of the transforms for this matrix and the given matrix.
    * This emulates the OpenGL function glMultMatrix().
@@ -49,7 +46,6 @@ export class Matrix {
   public multiply(matrix: Matrix): Matrix {
     return Matrix.multiply(this, matrix, new Matrix())
   }
-
   /**
    * Transforms the vector as a point with a w coordinate of 1.
    * This means translations will have an effect.
@@ -65,7 +61,6 @@ export class Matrix {
       m[8] * v.x + m[9] * v.y + m[10] * v.z + m[11]
     ).divide(m[12] * v.x + m[13] * v.y + m[14] * v.z + m[15])
   }
-
   /**
    * Transforms the vector as a vector with a w coordinate of 0.
    * This means translations will have no effect.
@@ -81,7 +76,6 @@ export class Matrix {
       m[8] * v.x + m[9] * v.y + m[10] * v.z
     )
   }
-
   /**
    * Returns this matrix with its columns and rows exchanged.
    *
@@ -91,12 +85,10 @@ export class Matrix {
     return Matrix.transpose(this, new Matrix())
   }
 
-  // Static Methods
-
   /**
-   * Sets up a viewing frustrum that is shaped like a truncated
+   * Sets up a viewing frustum that is shaped like a truncated
    * pyramid with the camera placed where the point of the would pyramid. This
-   * emulates the openGL function `glFrustrum()`
+   * emulates the openGL function `glFrustum()`
    *
    * @param left The left-most X coordinate at the near clipping plane
    * @param right The right-most X coordinate at the near clipping plane
@@ -106,7 +98,7 @@ export class Matrix {
    * @param far The distance from the camera to the far clipping plane
    * @param result A matrix to store the inverted matrix in. Defaults to creating a new matrix instance
    */
-  public static frustrum(
+  public static frustum(
     left: number,
     right: number,
     bottom: number,
@@ -139,7 +131,6 @@ export class Matrix {
 
     return result
   }
-
   /**
    * Returns an identity matrix.
    * This emulates the OpenGL function glLoadIdentity().
@@ -166,7 +157,6 @@ export class Matrix {
         0
     return result
   }
-
   /**
    * Returns the matrix that when multiplied with the given matrix results in the identity matrix.
    * You can optionally pass an existing matrix in result to avoid allocating a new matrix.
@@ -301,7 +291,6 @@ export class Matrix {
 
     return result
   }
-
   /**
    * @description Modify a matrix such that the camera moves to the eye point (ex, ey, ez)
    * looking towards the center point (cx, cy, cz) with an up direction of (ux, uy, uz). This emulates
@@ -362,7 +351,6 @@ export class Matrix {
 
     return result
   }
-
   /**
    * Returns the concatenation of the transforms for the two given matrices.
    * This emulates the OpenGL function glMultMatrix().
@@ -399,7 +387,6 @@ export class Matrix {
 
     return result
   }
-
   /**
    * Creates an orthographic projection, in which objects are
    * the same size no matter how far away or near to the camera they are.
@@ -445,7 +432,6 @@ export class Matrix {
 
     return result
   }
-
   /**
    * Returns a perspective transform matrix, which makes far away objects appear
    * smaller than nearby objects. This emulates the OpenGL function
@@ -471,9 +457,8 @@ export class Matrix {
     const y = Math.tan((fov * Math.PI) / 360) * near
     const x = y * aspect
 
-    return this.frustrum(-x, x, -y, y, near, far, result)
+    return this.frustum(-x, x, -y, y, near, far, result)
   }
-
   /**
    * Rotates a matrix by `angle` degrees around the vector `(x, y, z)`. This emulates the openGL function `glRotate()`.
    * If either the angle OR the vector parameters aren't defined, this function will return an identity matrix.
@@ -527,7 +512,6 @@ export class Matrix {
 
     return result
   }
-
   /**
    * @description This emulates the openGL function `glScale()` by creating a scaling matrix.
    *
@@ -562,7 +546,6 @@ export class Matrix {
 
     return result
   }
-
   /**
    * Emulates the OpenGL function glTranslate() by creating a translation matrix.
    *
@@ -602,7 +585,6 @@ export class Matrix {
 
     return result
   }
-
   /**
    * Returns the matrix with its columns and rows exchanged.
    * You can optionally pass an existing matrix in result to avoid allocating a new matrix.
