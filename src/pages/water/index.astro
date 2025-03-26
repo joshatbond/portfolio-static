@@ -4,9 +4,80 @@ import Layout from '@/layouts/Layout.astro'
 
 <Layout title="Cover">
   <main
-    class="flex min-h-[--body-height] max-w-screen-xl flex-col bg-gray-900 text-gray-100 lg:mx-auto"
+    class="grid min-h-[--body-height] grid-cols-[1fr,auto] bg-gray-900 text-xs text-gray-100 lg:mx-auto"
     id="app"
   >
+    <div id="loading" class="">Loading...</div>
+    <div id="help" class="max-w-[280px] space-y-4 py-4 pe-5">
+      <h1 class="text-center text-3xl font-bold">WebGL Water</h1>
+
+      <p>
+        Originally made by
+        <a class="text-inherit" href="http://madebyevan.com/">Evan Wallace</a>
+      </p>
+
+      <p>
+        Updated to WebGL2 and Typescript by
+        <a class="text-inherit" href="https://github.com/joshatbond">
+          Joshua Richardson
+        </a>
+      </p>
+
+      <h2 class="text-lg font-bold">Interactions:</h2>
+
+      <ul class="pl-5">
+        <li class="list-disc">Draw on the water to make ripples</li>
+        <li class="list-disc">Drag the background to rotate the camera</li>
+        <li class="list-disc">Press SPACEBAR to pause and unpause</li>
+        <li class="list-disc">Drag the sphere to move it around</li>
+        <li class="list-disc">Press the L key to set the light direction</li>
+        <li class="list-disc">Press the G key to toggle gravity</li>
+      </ul>
+
+      <h2 class="text-lg font-bold">Features:</h2>
+
+      <ul class="pl-5">
+        <li class="list-disc">Raytraced reflections and refractions</li>
+        <li class="list-disc">Analytic ambient occlusion</li>
+        <li class="list-disc">Heightfield water simulation *</li>
+        <li class="list-disc">Soft shadows</li>
+        <li class="list-disc">
+          Caustics (see
+          <a
+            class="text-inherit"
+            href="https://medium.com/@evanwallace/rendering-realtime-caustics-in-webgl-2a99a29a0b2c"
+          >
+            this
+          </a> for details) **
+        </li>
+      </ul>
+
+      <p class="">
+        <small>
+          * requires the OES_texture_float extension<br />** requires the
+          OES_standard_derivatives extension
+        </small>
+      </p>
+
+      <p>
+        <small>
+          Tile texture from
+          <a
+            class="text-inherit"
+            href="http://www.flickr.com/photos/zooboing/3682834083/"
+          >
+            zooboing
+          </a> on Flickr
+        </small>
+      </p>
+    </div>
+
+    <img id="tiles" src="water/tiles.jpg" class="hidden" />
+    <img id="xneg" src="water/xneg.jpg" class="hidden" />
+    <img id="xpos" src="water/xpos.jpg" class="hidden" />
+    <img id="ypos" src="water/ypos.jpg" class="hidden" />
+    <img id="zneg" src="water/zneg.jpg" class="hidden" />
+    <img id="zpos" src="water/zpos.jpg" class="hidden" />
   </main>
 </Layout>
 
