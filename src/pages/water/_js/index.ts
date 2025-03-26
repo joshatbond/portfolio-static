@@ -3,23 +3,32 @@ import { GL } from './gl'
 import { getElementById } from './utils/dom'
 
 const loadingEl = getElementById('loading')
-const imageXNeg = getElementById<HTMLImageElement>('xneg')
-const imageXPos = getElementById<HTMLImageElement>('xpos')
-const imageYNeg = getElementById<HTMLImageElement>('yneg')
-const imageYPos = getElementById<HTMLImageElement>('ypos')
-const imageZNeg = getElementById<HTMLImageElement>('zneg')
-const imageZPos = getElementById<HTMLImageElement>('zpos')
 
 window.onerror = handleError
 const gl = GL()
 let cubeMap: Cubemap
 
+main()
+
 function main() {
+  const helpEl = getElementById('help')
   const ratio = window.devicePixelRatio ?? 1
-  const helpEL = document.getElementById('help')
+
+  loadingEl.innerHTML = ''
+  loadingEl.appendChild(gl.canvas)
+  gl.ctx.clearColor(0, 0, 0, 1)
+
+  cubeMap = new Cubemap(gl.ctx, {
+    xneg: getElementById<HTMLImageElement>('xneg'),
+    xpos: getElementById<HTMLImageElement>('xpos'),
+    yneg: getElementById<HTMLImageElement>('ypos'),
+    ypos: getElementById<HTMLImageElement>('ypos'),
+    zneg: getElementById<HTMLImageElement>('zneg'),
+    zpos: getElementById<HTMLImageElement>('zpos'),
+  })
 
   function onresize() {
-    const width = innerWidth - (helpEL?.clientWidth ?? 0) - 20
+    const width = innerWidth - (helpEl.clientWidth ?? 0) - 20
     const height = innerHeight
     gl.canvas.width = width * ratio
     gl.canvas.height = height * ratio
@@ -33,16 +42,6 @@ function main() {
 
     draw()
   }
-  document.body.appendChild(gl.canvas)
-  gl.ctx.clearColor(0, 0, 0, 1)
-  cubeMap = new Cubemap(gl.ctx, {
-    xneg: imageXNeg,
-    xpos: imageXPos,
-    yneg: imageYNeg,
-    ypos: imageYPos,
-    zneg: imageZNeg,
-    zpos: imageZPos,
-  })
 }
 
 function draw() {}
