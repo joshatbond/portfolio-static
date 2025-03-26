@@ -1,5 +1,18 @@
+import { Indexer } from './Indexer'
 import { Matrix } from './Matrix'
 import { Vector } from './Vector'
+
+/**
+ * Represents a buffer that can be uploaded to the GPU.
+ */
+const cubeData = [
+  [0, 4, 2, 6, -1, 0, 0], // -x
+  [1, 3, 5, 7, +1, 0, 0], // +x
+  [0, 1, 4, 5, 0, -1, 0], // -y
+  [2, 6, 3, 7, 0, +1, 0], // +y
+  [0, 2, 1, 3, 0, 0, -1], // -z
+  [4, 5, 6, 7, 0, 0, +1], // +z
+]
 
 /**
  * Represents a collection of vertex buffers and index buffers.
@@ -28,16 +41,7 @@ export class Mesh {
   vertexBuffers: Record<string, Buffer>
   indexBuffers: Record<string, Buffer>
 
-  constructor(
-    ctx: WebGL2RenderingContext,
-    options: Partial<{
-      coords: boolean
-      normals: boolean
-      colors: boolean
-      triangles: boolean
-      lines: boolean
-    }> = {}
-  ) {
+  constructor(ctx: WebGL2RenderingContext, options: MeshOptions = {}) {
     this.ctx = ctx
     this.vertexBuffers = {}
     this.indexBuffers = {}
@@ -56,7 +60,7 @@ export class Mesh {
    * `name` on this object.
    * @param name The name of the data array on the mesh instance
    */
-  addIndexBuffer(name: IndexBufferName) {
+  public addIndexBuffer(name: IndexBufferName) {
     this.indexBuffers[name] = new Buffer(
       this.ctx.ELEMENT_ARRAY_BUFFER,
       Uint16Array,
@@ -69,7 +73,7 @@ export class Mesh {
    * `name` on this object and map it to the attribute called `attribute` in
    * all shaders that draw this mesh.
    */
-  addVertexBuffer(name: VertexBufferName, attribute: string) {
+  public addVertexBuffer(name: VertexBufferName, attribute: string) {
     const buffer = (this.vertexBuffers[attribute] = new Buffer(
       this.ctx.ARRAY_BUFFER,
       Float32Array,
@@ -83,7 +87,7 @@ export class Mesh {
    * rendering. This doesn't need to be called every frame, only needs to be
    * done when the data changes.
    */
-  compile() {
+  public compile() {
     for (const attribute in this.vertexBuffers) {
       const buffer = this.vertexBuffers[attribute]
       buffer.data = this[buffer.name] as number[]
@@ -100,7 +104,7 @@ export class Mesh {
    * of the neighboring triangles. This means adjacent triangles must share
    * vertices for the resulting normals to be smooth.
    */
-  computeNormals() {
+  public computeNormals() {
     if (!this.normals) {
       this.addVertexBuffer('normals', 'gl_Normal')
       this.normals = []
@@ -131,7 +135,7 @@ export class Mesh {
    * @description Populate the `lines` index buffer from the `triangles` index
    * buffer.
    */
-  computeWireframe() {
+  public computeWireframe() {
     const indexer = new Indexer<(typeof this.lines)[number]>()
     if (!this.lines) {
       this.addIndexBuffer('lines')
@@ -156,7 +160,7 @@ export class Mesh {
    * whose `min` and `max` properties contain the minimum and maximum
    * coordinates of all vertices.
    */
-  getAABB() {
+  public getAABB() {
     const aabb = {
       min: new Vector(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE),
       max: new Vector(),
@@ -173,7 +177,7 @@ export class Mesh {
    * @description Computes a sphere that contains all vertices (not necessarily
    * the smallest sphere).
    */
-  getBoundingSphere() {
+  public getBoundingSphere() {
     const aabb = this.getAABB()
     const sphere = { center: aabb.min.add(aabb.max).divide(2), radius: 0 }
 
@@ -190,7 +194,7 @@ export class Mesh {
    * @description Transform all vertices by `matrix` and all normals by the
    * inverse transpose of `matrix`.
    */
-  transform(matrix: Matrix) {
+  public transform(matrix: Matrix) {
     this.vertices = this.vertices.map(v =>
       matrix.transformPoint(Vector.fromArray(v)).toArray()
     ) as Mesh['vertices']
@@ -206,106 +210,238 @@ export class Mesh {
     return this
   }
 
-  static plane(options: Mesh) {}
-}
-
-/**
- * @description Generates indices into a list of unique objects from a stream
- * of objects that may contain duplicates. This is useful for generating
- * compact indexed meshes from unindexed data.
- */
-export class Indexer<T> {
-  unique: T[]
-  map: Record<string, number>
-
-  constructor() {
-    this.unique = []
-    this.map = {}
-  }
-
-  add(el: T) {
-    const key = JSON.stringify(el)
-    if (!(key in this.map)) {
-      this.map[key] = this.unique.length
-      this.unique.push(el)
-    }
-
-    return this.map[key]
-  }
-}
-
-/**
- * @description Provides a simple method of uploading data to a GPU buffer.
- * @example
- *
- * ```ts
- * const vertices = new GL.Buffer(gl.ARRAY_BUFFER, Float32Array);
- * const indices = new GL.Buffer(gl.ELEMENT_ARRAY_BUFFER, Uint16Array);
- * vertices.data = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]];
- * indices.data = [[0, 1, 2], [2, 1, 3]];
- * vertices.compile();
- * indices.compile();
- * ```
- */
-class Buffer {
-  buffer: WebGLBuffer | null
-  target: BufferTarget
-  type: BufferType
-  data: number[]
-  ctx: WebGL2RenderingContext
-  name: VertexBufferName | IndexBufferName = 'vertices'
-
-  constructor(
-    target: BufferTarget,
-    type: BufferType,
-    ctx: WebGL2RenderingContext
-  ) {
-    this.buffer = null
-    this.target = target
-    this.type = type
-    this.data = []
-    this.ctx = ctx
-  }
-
   /**
-   * @description Upload the contents of `data` to the GPU in preparation for
-   * rendering. The data must be a list of lists where each inner list has the
-   * same length. For example, each element of data for vertex normals would be
-   * a list of length three. This will remember the data length and element
-   * length for later use by shaders. The type can be either `gl.STATIC_DRAW`
-   * or `gl.DYNAMIC_DRAW`, and defaults to `gl.STATIC_DRAW`.
+   * Generates a square 2x2 mesh the xy plane centered at the origin.
+   * Two triangles are generated by default.
    *
-   * This could have used `[].concat.apply([], this.data)` to flatten the array
-   * but Google Chrome has a maximum number of arguments so the concatenations
-   * are chunked to avoid that limit.
+   * @param ctx The webGL context to perform work in
+   * @param options Specifies options to customize the plane.
+   *
+   * @example
+   * ```typescript
+   * const mesh1 = Mesh.plane()
+   * const mesh2 = Mesh.plane({ detail: 5 })
+   * const mesh3 = Mesh.plane({ detailX: 20, detailY: 40 })
+   * ```
    */
-  compile(
-    type:
-      | WebGLRenderingContextBase['STATIC_DRAW']
-      | WebGLRenderingContextBase['DYNAMIC_DRAW'] = 35048
+  static plane(
+    ctx: WebGL2RenderingContext,
+    options: PlaneOptions = {
+      detail: 1,
+    }
   ) {
-    let data: number[] = []
-    for (let i = 0, chunk = 1e4; i < this.data.length; i += chunk) {
-      data = Array.prototype.concat.apply(data, this.data.slice(i, i + chunk))
+    const mesh = new Mesh(ctx, options.mesh)
+    const detailX = options.detailX ?? options.detail
+    const detailY = options.detailY ?? options.detail
+
+    for (let y = 0; y <= detailY; y++) {
+      const t = y / detailY
+      for (let x = 0; x <= detailX; x++) {
+        const s = x / detailX
+        mesh.vertices.push([2 * s - 1, 2 * t - 1, 0])
+
+        if (mesh.coords) mesh.coords.push([s, t])
+        if (mesh.normals) mesh.normals.push([0, 0, 1])
+        if (x < detailX && y < detailY) {
+          const i = x + y * (detailX + 1)
+          mesh.triangles.push([i, i + 1, i + detailX + 1])
+          mesh.triangles.push([i + detailX + 1, i + 1, i + detailX + 2])
+        }
+      }
     }
-    const spacing = this.data.length ? data.length / this.data.length : 0
-    if (spacing !== Math.round(spacing)) {
-      throw new Error(
-        `buffer elements not of consistent size, average size is ${spacing}`
+
+    mesh.compile()
+    return mesh
+  }
+  /**
+   * Generates a 2x2x2 box centered at the origin.
+   *
+   * @param ctx The WebGL context to perform work in.
+   * @param options Specify options to customize the cube.
+   */
+  static cube(ctx: WebGL2RenderingContext, options?: MeshOptions) {
+    const mesh = new Mesh(ctx, options)
+
+    for (let i = 0; i < cubeData.length; i++) {
+      const face = cubeData[i]
+      const v = i * 4
+
+      for (let j = 0; j < 4; j++) {
+        mesh.vertices.push(
+          pickOctant(face[j]).toArray() as Mesh['vertices'][number]
+        )
+        if (mesh.coords) mesh.coords.push([j & 1, (j & 2) / 2])
+        if (mesh.normals)
+          mesh.normals.push(
+            face.slice(4, 7) as NonNullable<Mesh['normals']>[number]
+          )
+      }
+
+      mesh.triangles.push([v, v + 1, v + 2])
+      mesh.triangles.push([v + 2, v + 1, v + 3])
+    }
+
+    mesh.compile()
+    return mesh
+  }
+  /**
+   * Generates a geodesic sphere of radius 1.
+   *
+   * @param ctx The WebGL context to perform work in.
+   * @param options Specify options to customize the sphere.
+   *
+   * @example
+   * ```typescript
+   * const mesh1 = Mesh.sphere()
+   * const mesh2 = Mesh.sphere({ detail: 5 })
+   * ```
+   */
+  static sphere(
+    ctx: WebGL2RenderingContext,
+    options: SphereOptions = { detail: 6 }
+  ) {
+    const mesh = new Mesh(ctx, options.mesh)
+    const indexer = new Indexer<{
+      vertex: Vector
+      coords: number[] | undefined
+    }>()
+
+    for (let octant = 0; octant < 8; octant++) {
+      const scale = pickOctant(octant)
+      const flip = scale.x * scale.y * scale.z > 0
+      const data = [] as number[]
+
+      for (let i = 0; i < options.detail; i++) {
+        // Generate a row of vertices on the surface of the sphere
+        // using barycentric coordinates.
+        for (let j = 0; i + j < options.detail; j++) {
+          const a = i / options.detail
+          const b = j / options.detail
+          const c = (options.detail - i - j) / options.detail
+          const vertex = {
+            vertex: new Vector(fix(a), fix(b), fix(c)).unit().multiply(scale),
+            coords: mesh.coords
+              ? scale.y > 0
+                ? [1 - a, c]
+                : [c, 1 - a]
+              : undefined,
+          }
+
+          data.push(indexer.add(vertex))
+        }
+
+        // Generate triangles from this row and the previous
+        if (i > 0) {
+          for (let j = 0; j < options.detail; j++) {
+            const a =
+              (i - 1) * (options.detail + 1) +
+              (i - 1 - (i - 1) * (i - 1)) / 2 +
+              j
+            const b = i * (options.detail + 1) + (i - i * i) / 2 + j
+
+            mesh.triangles.push(tri(data[a], data[a + 1], data[b], flip))
+
+            if (i + j < options.detail) {
+              mesh.triangles.push(tri(data[b], data[a + 1], data[b + 1], flip))
+            }
+          }
+        }
+      }
+
+      // reconstruct the geometry from the indexer
+      mesh.vertices = indexer.unique.map(
+        v => v.vertex.toArray() as Mesh['vertices'][number]
       )
+      if (mesh.coords) {
+        mesh.coords = indexer.unique.map(
+          v => v.coords as NonNullable<Mesh['coords']>[number]
+        )
+      }
+      if (mesh.normals) {
+        mesh.normals = mesh.vertices
+      }
     }
 
-    this.buffer = this.buffer || this.ctx.createBuffer()
-    if (!this.buffer) throw new Error('unable to create buffer')
+    mesh.compile()
+    return mesh
 
-    this.ctx.bindBuffer(this.target, this.buffer)
-    this.ctx.bufferData(this.target, new this.type(data), type)
+    function tri(
+      a: number,
+      b: number,
+      c: number,
+      flip: boolean
+    ): [x: number, y: number, z: number] {
+      return flip ? [a, c, b] : [a, b, c]
+    }
+    function fix(x: number) {
+      return x + (x - x * x) / 2
+    }
   }
 }
 
-type BufferTarget =
-  | WebGLRenderingContextBase['ARRAY_BUFFER']
-  | WebGLRenderingContextBase['ELEMENT_ARRAY_BUFFER']
-type BufferType = Float32ArrayConstructor | Uint16ArrayConstructor
-type VertexBufferName = 'vertices' | 'coords' | 'normals' | 'colors'
-type IndexBufferName = 'triangles' | 'lines'
+/**
+ * Computes the position of a vertex in a unit cube based on an index.
+ *
+ * The cube is centered at the origin with vertices at (-1, -1, -1) to (1, 1, 1).
+ * The index `i` (0–7) determines which of the 8 corners of the cube is selected.
+ *
+ * @param i - An index from 0 to 7 representing one of the eight cube corners.
+ * @returns A Vector representing the position of the corresponding vertex.
+ */
+function pickOctant(i: number) {
+  return new Vector((i & 1) * 2 - 1, (i & 2) - 1, (i & 4) / 2 - 1)
+}
+
+type MeshOptions = Partial<{
+  /**
+   * Determines whether a coordinate vertex buffer will be created for the mesh.
+   * By default, it does not.
+   */
+  coords: boolean
+  /**
+   * Determines whether a normals vertex buffer will be created for the mesh.
+   * By default, it does not.
+   */
+  normals: boolean
+  /**
+   * Determines whether a colors vertex buffer will be created for the mesh.
+   * By default, it does not.
+   */
+  colors: boolean
+  /**
+   * Determines whether the triangles index buffer will be created for the mesh.
+   * By default, it does.
+   */
+  triangles: boolean
+  /**
+   * Determines whether the lines index buffer will be created for the mesh.
+   * By default, it does not.
+   */
+  lines: boolean
+}>
+type PlaneOptions = {
+  /**
+   * Specify the level of detail (number of vertices) for both the `x` and `y`.
+   * Defaults to `1`.
+   */
+  detail: number
+  /** Options to pass to the Mesh constructor */
+  mesh?: MeshOptions
+  /** Specify the level of detail (number of vertices) in the x direction.
+   */
+  detailX?: number
+  /** Specify the level of detail (number of vertices) in the y direction.
+   */
+  detailY?: number
+}
+type SphereOptions = {
+  /**
+   * Specify the level of detail (number of vertices) for both the `x` and `y`.
+   * Defaults to `1`.
+   */
+  detail: number
+  /** Options to pass to the Mesh constructor */
+  mesh?: MeshOptions
+  /** Specify the level of detail (number of vertices) in the x direction.
+   */
+}
