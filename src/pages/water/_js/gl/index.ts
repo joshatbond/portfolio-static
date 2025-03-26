@@ -57,6 +57,7 @@ function glCore(options: WebGLContextAttributes) {
 function matrixStack() {
   const MODEL_VIEW = ENUM | 1
   const PROJECTION = ENUM | 2
+  console.log(MODEL_VIEW, PROJECTION)
   const tempMatrix = new Matrix()
   /**
    * A matrix to cache any results
@@ -144,14 +145,16 @@ function matrixStack() {
      * @param mode either gl.MODEL_VIEW or gl.PROJECTION
      */
     matrixMode(mode: number) {
-      if (mode !== MODEL_VIEW || mode !== PROJECTION) {
-        throw new Error(`invalid matrix mode: ${mode}`)
-      } else if (mode === MODEL_VIEW) {
+      if (mode === MODEL_VIEW) {
+        console.log('model view')
         matrix = modelViewMatrix
         stack = modelViewStack
-      } else {
+      } else if (mode === PROJECTION) {
+        console.log('projection')
         matrix = projectionMatrix
         stack = projectionStack
+      } else {
+        throw new Error(`invalid matrix mode: ${mode}`)
       }
     },
     /**
