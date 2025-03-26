@@ -1,0 +1,12 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import { Gallery } from './_components/Gallery'
+---
+
+<Layout title="Cover">
+  <main
+    class="flex min-h-[--body-height] max-w-screen-xl flex-col bg-gray-900 p-4 text-gray-100 lg:mx-auto"
+  >
+    <Gallery client:load />
+  </main>
+</Layout>
