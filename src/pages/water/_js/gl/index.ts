@@ -290,7 +290,7 @@ function matrixStack() {
      * @param modelView A model matrix, defaults to the current model matrix
      * @param projection A projection matrix, defaults to the current projection matrix
      */
-    unproject(
+    unProject(
       winX: number,
       winY: number,
       winZ: number,
