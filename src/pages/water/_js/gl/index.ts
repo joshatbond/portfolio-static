@@ -522,7 +522,7 @@ function animationStack(subscribe: ReturnType<typeof controller>['subscribe']) {
      */
     animate() {
       requestAnimationFrame(update)
-      update(0)
+      update(performance.now())
 
       function update(currentTime: number) {
         if (!prevTime) prevTime = currentTime
@@ -532,5 +532,10 @@ function animationStack(subscribe: ReturnType<typeof controller>['subscribe']) {
         requestAnimationFrame(update)
       }
     },
+    /**
+     * Subscribe to the update event
+     */
+    onFrame: updateBroker.subscribe,
+    isPaused: () => paused,
   }
 }
