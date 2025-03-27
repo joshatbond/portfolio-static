@@ -1,3 +1,4 @@
+import { Buffer, type IndexBufferName, type VertexBufferName } from './Buffer'
 import { Indexer } from './Indexer'
 import { Matrix } from './Matrix'
 import { Vector } from './Vector'
@@ -38,7 +39,7 @@ export class Mesh {
   triangles: [x: number, y: number, z: number][] = []
   lines: [x: number, y: number][] = []
 
-  vertexBuffers: Record<string, Buffer>
+  vertexBuffers: Record<string, Buffer & { spacing: number }>
   indexBuffers: Record<string, Buffer>
 
   constructor(ctx: WebGL2RenderingContext, options: MeshOptions = {}) {
@@ -46,8 +47,8 @@ export class Mesh {
     this.vertexBuffers = {}
     this.indexBuffers = {}
     this.addVertexBuffer('vertices', 'gl_Vertex')
-    if (options.coords) this.addVertexBuffer('coords', 'gl_TexCoord')
-    if (options.normals) this.addVertexBuffer('normals', 'gl_Normal')
+    if (options.coords) this.addVertexBuffer('coords', 'gl_TexCoord', 2)
+    if (options.normals) this.addVertexBuffer('normals', 'gl_Normal', 3)
     if (options.colors) this.addVertexBuffer('colors', 'gl_Color')
     if (!('triangles' in options) || options.triangles) {
       this.addIndexBuffer('triangles')
@@ -73,13 +74,18 @@ export class Mesh {
    * `name` on this object and map it to the attribute called `attribute` in
    * all shaders that draw this mesh.
    */
-  public addVertexBuffer(name: VertexBufferName, attribute: string) {
+  public addVertexBuffer(
+    name: VertexBufferName,
+    attribute: string,
+    spacing = 3
+  ) {
     const buffer = (this.vertexBuffers[attribute] = new Buffer(
       this.ctx.ARRAY_BUFFER,
       Float32Array,
       this.ctx
     ))
     buffer.name = name
+    buffer.spacing = spacing
     this[name] = []
   }
   /**
