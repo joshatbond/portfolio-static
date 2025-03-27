@@ -107,9 +107,12 @@ const float IOR_AIR = 1.0;
  * WebGL Renderer
  */
 export class Renderer {
+  public lightDir: Vector
+  public sphereCenter: Vector
+  public sphereRadius: number
+
   private gl: GL
   private tileTexture: Texture
-  private lightDir: Vector
   private causticTex: Texture
   private waterMesh: Mesh
   private waterShaders: Shader[]
@@ -118,8 +121,6 @@ export class Renderer {
   private cubeMesh: Mesh
   private cubeShader: Shader
   private causticsShader: Shader
-  private sphereCenter: Vector
-  private sphereRadius: number
 
   /**
    * Initializes the WebGL renderer.
