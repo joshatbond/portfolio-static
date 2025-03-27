@@ -11,13 +11,15 @@
  * indices.compile();
  * ```
  */
-class Buffer {
+export class Buffer {
   buffer: WebGLBuffer | null
   target: BufferTarget
   type: BufferType
   data: number[]
   ctx: WebGL2RenderingContext
   name: VertexBufferName | IndexBufferName = 'vertices'
+  spacing: number
+  length: number
 
   constructor(
     target: BufferTarget,
@@ -29,6 +31,8 @@ class Buffer {
     this.type = type
     this.data = []
     this.ctx = ctx
+    this.spacing = 3
+    this.length = 0
   }
 
   /**
@@ -64,6 +68,7 @@ class Buffer {
 
     this.ctx.bindBuffer(this.target, this.buffer)
     this.ctx.bufferData(this.target, new this.type(data), type)
+    this.length = data.length
   }
 }
 
@@ -71,5 +76,5 @@ type BufferTarget =
   | WebGLRenderingContextBase['ARRAY_BUFFER']
   | WebGLRenderingContextBase['ELEMENT_ARRAY_BUFFER']
 type BufferType = Float32ArrayConstructor | Uint16ArrayConstructor
-type VertexBufferName = 'vertices' | 'coords' | 'normals' | 'colors'
-type IndexBufferName = 'triangles' | 'lines'
+export type VertexBufferName = 'vertices' | 'coords' | 'normals' | 'colors'
+export type IndexBufferName = 'triangles' | 'lines'
