@@ -72,8 +72,9 @@ function matrixStack() {
 
   return {
     MODEL_VIEW,
+    modelViewMatrix,
     PROJECTION,
-
+    projectionMatrix,
     /**
      *
      * @param left The left-most X coordinate at the near clipping plane
@@ -83,7 +84,7 @@ function matrixStack() {
      * @param near The distance from the camera to the near clipping plane
      * @param far The distance from the camera to the far clipping plane
      */
-    frustrum(
+    frustum(
       left: number,
       right: number,
       top: number,
@@ -92,7 +93,7 @@ function matrixStack() {
       far: number
     ) {
       this.multMatrix(
-        Matrix.frustrum(left, right, top, bottom, near, far, tempMatrix)
+        Matrix.frustum(left, right, top, bottom, near, far, tempMatrix)
       )
     },
     /**
@@ -321,43 +322,43 @@ function matrixStack() {
  * for debugging. This intentionally doesn't implement fixed-function lighting
  * because its only meant for quick debugging tasks.
  */
-function immediateMode(context: WebGL2RenderingContext) {
-  const immediateMode = {
-    mesh: new Mesh(context, { coords: true, colors: true, triangles: false }),
-    mode: -1,
-    coord: [0, 0, 0, 0],
-    color: [1, 1, 1, 1],
-    pointSize: 1,
-    shader: new Shader(
-      context,
-      '\
-      uniform float pointSize;\
-      varying vec4 color;\
-      varying vec4 coord;\
-      void main() {\
-        color = gl_Color;\
-        coord = gl_TexCoord;\
-        gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
-        gl_PointSize = pointSize;\
-      }\
-    ',
-      '\
-      uniform sampler2D texture;\
-      uniform float pointSize;\
-      uniform bool useTexture;\
-      varying vec4 color;\
-      varying vec4 coord;\
-      void main() {\
-        gl_FragColor = color;\
-        if (useTexture) gl_FragColor *= texture2D(texture, coord.xy);\
-      }\
-    '
-    ),
-  }
-  return {
-    pointSize() {},
-  }
-}
+// function immediateMode(context: WebGL2RenderingContext) {
+//   const immediateMode = {
+//     mesh: new Mesh(context, { coords: true, colors: true, triangles: false }),
+//     mode: -1,
+//     coord: [0, 0, 0, 0],
+//     color: [1, 1, 1, 1],
+//     pointSize: 1,
+//     shader: new Shader(
+//       context,
+//       '\
+//       uniform float pointSize;\
+//       varying vec4 color;\
+//       varying vec4 coord;\
+//       void main() {\
+//         color = gl_Color;\
+//         coord = gl_TexCoord;\
+//         gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
+//         gl_PointSize = pointSize;\
+//       }\
+//     ',
+//       '\
+//       uniform sampler2D texture;\
+//       uniform float pointSize;\
+//       uniform bool useTexture;\
+//       varying vec4 color;\
+//       varying vec4 coord;\
+//       void main() {\
+//         gl_FragColor = color;\
+//         if (useTexture) gl_FragColor *= texture2D(texture, coord.xy);\
+//       }\
+//     '
+//     ),
+//   }
+//   return {
+//     pointSize() {},
+//   }
+// }
 
 /**
  * Improved mouse events
