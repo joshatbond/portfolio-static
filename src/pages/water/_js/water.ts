@@ -27,7 +27,7 @@ export class Water {
 
   /**
    * Constructs the water simulation.
-   * @param ctx The webGL context to work within.
+   * @param gl The full gl object.
    */
   constructor(gl: GL) {
     if (!Texture.canUseFloatingPointTextures(gl.ctx)) {
