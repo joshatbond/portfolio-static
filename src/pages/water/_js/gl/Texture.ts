@@ -49,7 +49,7 @@ export class Texture {
     this.width = width
     this.height = height
     this.type = options.type ?? ctx.UNSIGNED_BYTE
-    this.format = options.format ?? ctx.RGBA
+    this.format = options.format ?? ctx.RGBA8
 
     const magFilter = options.filter ?? options.magFilter ?? ctx.LINEAR
     const minFilter = options.filter ?? options.minFilter ?? ctx.LINEAR
