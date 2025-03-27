@@ -10,7 +10,7 @@ export function controller(
   keyConfig: { onDown: string[]; onUp?: string[] },
   options: { caseSensitive: boolean } = { caseSensitive: true }
 ) {
-  const keyBroker = pubSubBuilder<string, { key: string }>()
+  const keyBroker = pubSubBuilder<string, string>()
 
   if (keyConfig.onDown) {
     document.addEventListener('keydown', keyHandler('onDown'))
@@ -28,7 +28,7 @@ export function controller(
       const config = keyConfig[type] ?? keyConfig.onDown
       for (const key of config) {
         if ((options.caseSensitive ? key : key.toLowerCase()) === event.key)
-          keyBroker.publish(type, { key })
+          keyBroker.publish(type, key.toLowerCase())
       }
     }
   }
