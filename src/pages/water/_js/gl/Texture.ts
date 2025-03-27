@@ -263,7 +263,7 @@ export class Texture {
    * @returns
    */
   public static canUseFloatingPointTextures(ctx: WebGL2RenderingContext) {
-    return !!ctx.getExtension('OES_texture_float')
+    return !!ctx.getExtension('EXT_color_buffer_float')
   }
   /**
    * Returns false if `ctx.LINEAR` is not supported as a texture filter mode
@@ -283,7 +283,7 @@ export class Texture {
    * @param ctx A webgl context
    */
   public static canUseHalfFloatingPointTextures(ctx: WebGL2RenderingContext) {
-    return !!ctx.getExtension('OES_texture_half_float')
+    return !!ctx.getExtension('EXT_color_buffer_half_float')
   }
   /**
    * Returns false if `ctx.LINEAR` is not supported as a texture filter mode
