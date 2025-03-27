@@ -1,3 +1,4 @@
+import type { GL } from '.'
 import { Matrix } from './Matrix'
 import type { Mesh } from './Mesh'
 import { Vector } from './Vector'
@@ -32,7 +33,7 @@ const fragmentHeader = `
 var LIGHTGL_PREFIX = 'LIGHTGL'
 
 /**
- * @description Compiles a shader program using the provided vertex and
+ * Compiles a shader program using the provided vertex and
  * fragment shaders.
  */
 export class Shader {
@@ -49,7 +50,7 @@ export class Shader {
    */
   isSampler: Record<string, number> = {}
 
-  private gl: WebGL2RenderingContext
+  private gl: GL
 
   /**
    * Constructs a new Shader
@@ -58,11 +59,7 @@ export class Shader {
    * @param vertexSource EITHER a GLSL shader or the id of a script tag containing the GLSL shader
    * @param fragmentSource EITHER a GLSL shader or the id of a script tag containing the GLSL shader
    */
-  constructor(
-    gl: WebGL2RenderingContext,
-    vertexSource: string,
-    fragmentSource: string
-  ) {
+  constructor(gl: GL, vertexSource: string, fragmentSource: string) {
     this.gl = gl
     this.vertexSource = this.followScriptTagById(vertexSource)
     this.fragmentSource = this.followScriptTagById(fragmentSource)
@@ -84,20 +81,20 @@ export class Shader {
     vertexSource = this.fix(vertexHeader, vertexSource)
     fragmentSource = this.fix(fragmentHeader, fragmentSource)
 
-    const program = this.gl.createProgram()
+    const program = this.gl.ctx.createProgram()
     if (!program) throw new Error('unable to create program')
 
     this.program = program
 
-    this.gl.attachShader(
+    this.gl.ctx.attachShader(
       this.program,
-      this.compileSource(this.gl.VERTEX_SHADER, vertexSource)
+      this.compileSource(this.gl.ctx.VERTEX_SHADER, vertexSource)
     )
-    this.gl.attachShader(
+    this.gl.ctx.attachShader(
       this.program,
-      this.compileSource(this.gl.FRAGMENT_SHADER, fragmentSource)
+      this.compileSource(this.gl.ctx.FRAGMENT_SHADER, fragmentSource)
     )
-    this.gl.linkProgram(this.program)
+    this.gl.ctx.linkProgram(this.program)
 
     this.regexMap(
       /uniform\s+sampler(1D|2D|3D|Cube)\s+(\w+)\s*;/g,
@@ -109,25 +106,141 @@ export class Shader {
   }
 
   /**
-   * @description Compile and link errors are thrown as strings
+   * Compile and link errors are thrown as strings
    */
-  compileSource(type: GLenum, source: string) {
-    const shader = this.gl.createShader(type)
+  public compileSource(type: GLenum, source: string) {
+    const shader = this.gl.ctx.createShader(type)
     if (!shader) throw new Error('unable to create shader')
 
-    this.gl.shaderSource(shader, source)
-    this.gl.compileShader(shader)
+    this.gl.ctx.shaderSource(shader, source)
+    this.gl.ctx.compileShader(shader)
 
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      throw new Error('compile error: ' + this.gl.getShaderInfoLog(shader))
+    if (!this.gl.ctx.getShaderParameter(shader, this.gl.ctx.COMPILE_STATUS)) {
+      throw new Error('compile error: ' + this.gl.ctx.getShaderInfoLog(shader))
     }
 
     return shader
   }
-  /** */
-  draw(mesh: Mesh, mode: number) {}
-  /** */
-  drawBuffers() {}
+  /**
+   * Sets all uniform matrix attributes, binds all relevant buffers, and draws
+   * the mesh geometry as indexed triangles or indexed lines. Set `mode` to
+   * `gl.LINES`  (and either add indices to `lines` or call
+   * `computeWireframe()`) to draw the mesh in wireframe.
+   *
+   * @param mesh The mesh to draw
+   * @param mode The mode to draw the mesh in
+   */
+  public draw(mesh: Mesh, mode?: number) {
+    this.drawBuffers(
+      mesh.vertexBuffers,
+      mesh.indexBuffers[mode === this.gl.ctx.LINES ? 'lines' : 'triangles'],
+      mode ? mode : this.gl.ctx.TRIANGLES
+    )
+  }
+  /**
+   * Sets all uniform matrix attributes, binds all relevant buffers, and draws the
+   * indexed mesh geometry. This method automatically creates and caches
+   * vertex attribute pointers for attributes as needed.
+   *
+   * @param vertexBuffers a map from attribute names to `Buffer` objects of type `gl.ARRAY_BUFFER`
+   * @param indexBuffer a `Buffer` object of type `gl.ELEMENT_ARRAY_BUFFER`
+   * @param mode a WebGL primitive mode like `gl.TRIANGLES` or `gl.LINES`
+   */
+  public drawBuffers(
+    vertexBuffers: Mesh['vertexBuffers'],
+    indexBuffer: Mesh['indexBuffers'][number],
+    modes: number
+  ) {
+    // only construct the built-in matrices that are needed
+    const MVPMI = this.usedMatrices.MVPMI
+      ? this.usedMatrices.MVPM || this.usedMatrices.MVPMI
+        ? this.gl.projectionMatrix.multiply(this.gl.modelViewMatrix).inverse()
+        : null
+      : undefined
+
+    this.uniforms({
+      MVM: this.usedMatrices.MVM ? this.gl.modelViewMatrix : undefined,
+      MVMI: this.usedMatrices.MVMI
+        ? this.usedMatrices.MVMI || this.usedMatrices.NM
+          ? this.gl.modelViewMatrix.inverse()
+          : null
+        : undefined,
+      PM: this.usedMatrices.PM ? this.gl.projectionMatrix : undefined,
+      PMI: this.usedMatrices.PMI
+        ? this.gl.projectionMatrix.inverse()
+        : undefined,
+      MVPM: this.usedMatrices.MVPM
+        ? this.usedMatrices.MVPM || this.usedMatrices.MVPMI
+          ? this.gl.projectionMatrix.multiply(this.gl.modelViewMatrix)
+          : null
+        : undefined,
+      MVPMI,
+      NM:
+        this.usedMatrices.NM && MVPMI
+          ? [
+              MVPMI.m[0],
+              MVPMI.m[4],
+              MVPMI.m[8],
+              MVPMI.m[1],
+              MVPMI.m[5],
+              MVPMI.m[9],
+              MVPMI.m[2],
+              MVPMI.m[6],
+              MVPMI.m[10],
+            ]
+          : undefined,
+    })
+
+    let length = 0
+    for (const attribute in vertexBuffers) {
+      const buffer = vertexBuffers[attribute]
+      const location =
+        this.attributes[attribute] ||
+        this.gl.ctx.getAttribLocation(
+          this.program,
+          attribute.replace(/^(gl_.*)$/, LIGHTGL_PREFIX + '$1')
+        )
+      if (location === -1 || !buffer.buffer) continue
+
+      this.attributes[attribute] = location
+      this.gl.ctx.bindBuffer(this.gl.ctx.ARRAY_BUFFER, buffer.buffer)
+      this.gl.ctx.enableVertexAttribArray(location)
+      this.gl.ctx.vertexAttribPointer(
+        location,
+        buffer.spacing,
+        this.gl.ctx.FLOAT,
+        false,
+        0,
+        0
+      )
+      length = buffer.length / buffer.spacing
+    }
+
+    // disablue unused attribute pointers
+    for (const attribute in this.attributes) {
+      if (!(attribute in vertexBuffers)) {
+        this.gl.ctx.disableVertexAttribArray(this.attributes[attribute])
+      }
+    }
+
+    // draw the geometry
+    if (length && (!indexBuffer || indexBuffer.buffer)) {
+      if (indexBuffer) {
+        this.gl.ctx.bindBuffer(
+          this.gl.ctx.ELEMENT_ARRAY_BUFFER,
+          indexBuffer.buffer
+        )
+        this.gl.ctx.drawElements(
+          modes,
+          indexBuffer.length,
+          this.gl.ctx.UNSIGNED_SHORT,
+          0
+        )
+      } else {
+        this.gl.ctx.drawArrays(modes, 0, length)
+      }
+    }
+  }
   /**
    * The `gl_` prefix must be substituted for something else to
    * avoid compile errors, since it's a reserved prefix. This prefixes all
@@ -185,11 +298,11 @@ export class Shader {
    * uniform sampler flags.
    */
   uniforms(uniforms: Record<string, unknown>) {
-    this.gl.useProgram(this.program)
+    this.gl.ctx.useProgram(this.program)
 
     for (const name in uniforms) {
       if (!(name in this.uniformLocations)) {
-        const location = this.gl.getUniformLocation(this.program, name)
+        const location = this.gl.ctx.getUniformLocation(this.program, name)
         if (!location) continue
         this.uniformLocations[name] = location
       }
@@ -204,25 +317,25 @@ export class Shader {
       if (Array.isArray(value)) {
         switch (value.length) {
           case 1:
-            this.gl.uniform1fv(
+            this.gl.ctx.uniform1fv(
               this.uniformLocations[name],
               new Float32Array(value)
             )
             break
           case 2:
-            this.gl.uniform2fv(
+            this.gl.ctx.uniform2fv(
               this.uniformLocations[name],
               new Float32Array(value)
             )
             break
           case 3:
-            this.gl.uniform3fv(
+            this.gl.ctx.uniform3fv(
               this.uniformLocations[name],
               new Float32Array(value)
             )
             break
           case 4:
-            this.gl.uniform4fv(
+            this.gl.ctx.uniform4fv(
               this.uniformLocations[name],
               new Float32Array(value)
             )
@@ -230,7 +343,7 @@ export class Shader {
           // Matrices are automatically transposed, since WebGL uses column-major
           // indices instead of row-major indices.
           case 9:
-            this.gl.uniformMatrix3fv(
+            this.gl.ctx.uniformMatrix3fv(
               this.uniformLocations[name],
               false,
               new Float32Array([
@@ -247,7 +360,7 @@ export class Shader {
             )
             break
           case 16:
-            this.gl.uniformMatrix4fv(
+            this.gl.ctx.uniformMatrix4fv(
               this.uniformLocations[name],
               false,
               new Float32Array([
@@ -276,11 +389,10 @@ export class Shader {
             )
         }
       } else if (typeof value === 'number' || typeof value === 'boolean') {
-        ;(this.isSampler[name] ? this.gl.uniform1i : this.gl.uniform1f).call(
-          this.gl,
-          this.uniformLocations[name],
-          Number(value)
-        )
+        ;(this.isSampler[name]
+          ? this.gl.ctx.uniform1i
+          : this.gl.ctx.uniform1f
+        ).call(this.gl.ctx, this.uniformLocations[name], Number(value))
       } else {
         throw new Error(
           `attempted to set uniform ${name} to invalid value ${value}`
