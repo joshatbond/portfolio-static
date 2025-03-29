@@ -29,45 +29,38 @@ const { description, title } = Astro.props
     <title>{`CursedTale${title ? ` | ${title}` : ''}`}</title>
   </head>
 
-  <body class="bg-gray-900 text-white">
-    <header class="border-b border-gray-800 bg-gray-900">
+  <body class="text-primary">
+    <header class="border-border bg-muted/20 border-b backdrop-blur-xl">
       <div
         class="mx-auto flex max-w-screen-xl items-center justify-between p-4 lg:p-8"
       >
         <a class="flex items-center justify-center" href="/">
-          <span class="sr-only">Joshua Richardson Portfolio</span>
-          <span class="text-xl font-bold text-cyan-400 lg:text-2xl">JR</span>
+          <span
+            class="text-primary active:text-primary-selected text-xl font-bold lg:text-2xl"
+          >
+            Josh R
+          </span>
+
+          <span class="sr-only">Joshua Richardson's Portfolio</span>
         </a>
 
         <nav class="flex gap-6">
           <a
             href="https://github.com/joshatbond"
             target="_blank"
-            class="text-white transition-colors hover:text-cyan-400"
+            class="text-primary active:text-primary-selected transition-colors"
           >
-            <Github class="h-6 w-6 lg:h-8 lg:w-8" />
+            <Github class="size-6 lg:size-8" />
             <span class="sr-only">GitHub</span>
           </a>
 
           <a
             href="https://www.linkedin.com/in/richardson-joshua/"
             target="_blank"
-            class="text-white transition-colors hover:text-cyan-400"
+            class="text-primary active:text-primary-selected transition-colors"
           >
-            <Linkedin class="h-6 w-6 lg:h-8 lg:w-8" />
+            <Linkedin class="size-6 lg:size-8" />
             <span class="sr-only">LinkedIn</span>
-          </a>
-
-          <a
-            href="/resume.pdf"
-            download="Joshua Richardson Resume"
-            class="w-full min-w-44 sm:w-auto"
-          >
-            <Button
-              className="bg-cyan-500 px-2 text-lg text-gray-900 hover:bg-cyan-600"
-            >
-              CV
-            </Button>
           </a>
         </nav>
       </div>
@@ -93,8 +86,11 @@ const { description, title } = Astro.props
 
 <script>
   const header = document.querySelector('header')
-
   if (!header) throw new Error('Elements not found')
+
+  const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  applyTheme(darkModeMediaQuery.matches)
+
   let height = window.getComputedStyle(header).height
   document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
 
@@ -103,4 +99,12 @@ const { description, title } = Astro.props
     document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
   })
   observer.observe(header, { attributes: true, attributeFilter: ['style'] })
+
+  darkModeMediaQuery.addEventListener('change', e => {
+    applyTheme(e.matches)
+  })
+
+  function applyTheme(isDark: boolean) {
+    document.documentElement.classList.toggle('dark', isDark)
+  }
 </script>
