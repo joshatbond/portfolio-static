@@ -35,6 +35,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  --bg-body: oklch(0.98 0.005 180);
+  --gradient-1: oklch(0.92 0.08 218);
+  --gradient-2: oklch(0.92 0.08 39);
+  --gradient-3: oklch(0.92 0.06 271);
+  --gradient-4: oklch(0.92 0.07 197);
+  --gradient-fade-stop: 60%;
 }
 
 .dark {
@@ -69,6 +76,12 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --bg-body: oklch(0.12 0.02 210);
+  --gradient-1: oklch(0.3 0.12 218);
+  --gradient-2: oklch(0.3 0.12 39);
+  --gradient-3: oklch(0.25 0.1 271);
+  --gradient-4: oklch(0.28 0.11 197);
 }
 
 @theme inline {
@@ -114,6 +127,28 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--bg-body);
+    background-image:
+      radial-gradient(at 81% 65%, var(--gradient-1) 0px, transparent 50%),
+      radial-gradient(at 95% 99%, var(--gradient-2) 0px, transparent 50%),
+      radial-gradient(at 48% 26%, var(--gradient-3) 0px, transparent 50%),
+      radial-gradient(at 75% 26%, var(--gradient-4) 0px, transparent 50%);
+    background-size: 500% 500%;
+    animation: gradient 20s ease infinite;
+    height: 100vh;
+    will-change: background-position;
+  }
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
   }
 }
