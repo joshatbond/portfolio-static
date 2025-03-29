@@ -45,6 +45,14 @@ const { description, title } = Astro.props
         </a>
 
         <nav class="flex gap-6">
+          <div class="grid place-items-center">
+            <input
+              type="checkbox"
+              id="toggle"
+              class="toggle active:[--base-size:1.5rem] lg:[--base-size:1.8rem] active:lg:[--base-size:2rem]"
+            />
+          </div>
+
           <a
             href="https://github.com/joshatbond"
             target="_blank"
@@ -85,26 +93,67 @@ const { description, title } = Astro.props
 </html>
 
 <script>
-  const header = document.querySelector('header')
-  if (!header) throw new Error('Elements not found')
+  main()
+  function main() {
+    applyHeaderHeight()
+    setColorMode()
+  }
+  function setColorMode() {
+    const toggle = getElementById<HTMLInputElement>('toggle')
+    const userChoice = window.localStorage.getItem('color-mode') as
+      | 'dark'
+      | 'light'
+      | 'system'
+      | null
+    if (userChoice && userChoice !== 'system') {
+      toggle.checked = userChoice === 'dark'
+      applyTheme(userChoice === 'dark')
+    } else {
+      const darkModeMediaQuery = window.matchMedia(
+        '(prefers-color-scheme: dark)'
+      )
+      if (darkModeMediaQuery.matches) {
+        toggle.checked = true
+        applyTheme(true)
+      }
 
-  const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  applyTheme(darkModeMediaQuery.matches)
+      darkModeMediaQuery.addEventListener('change', e => {
+        applyTheme(e.matches)
+      })
+    }
 
-  let height = window.getComputedStyle(header).height
-  document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
+    toggle.addEventListener('change', e => {
+      const userChoice = (e.currentTarget as HTMLInputElement).checked
+        ? 'dark'
+        : 'light'
+      applyTheme(userChoice === 'dark')
+      window.localStorage.setItem('color-mode', userChoice)
+    })
+  }
+  function applyHeaderHeight() {
+    const header = document.querySelector('header')
+    if (!header) throw new Error('Elements not found')
 
-  const observer = new MutationObserver(() => {
-    const { height } = window.getComputedStyle(header)
+    let height = window.getComputedStyle(header).height
     document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
-  })
-  observer.observe(header, { attributes: true, attributeFilter: ['style'] })
 
-  darkModeMediaQuery.addEventListener('change', e => {
-    applyTheme(e.matches)
-  })
+    const observer = new MutationObserver(() => {
+      const { height } = window.getComputedStyle(header)
+      document.body.style.setProperty(
+        '--body-height',
+        `calc(100vh - ${height})`
+      )
+    })
+    observer.observe(header, { attributes: true, attributeFilter: ['style'] })
+  }
 
   function applyTheme(isDark: boolean) {
     document.documentElement.classList.toggle('dark', isDark)
+  }
+  function getElementById<T extends HTMLElement>(id: string) {
+    const el = document.getElementById(id)
+    if (!el) throw new Error(`No element with id ${id}`)
+
+    return el as T
   }
 </script>
