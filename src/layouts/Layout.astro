@@ -1,7 +1,8 @@
 ---
-import '../styles/globals.css'
-import Github from '../components/github.astro'
-import Linkedin from '../components/linkedin.astro'
+import '@/styles/globals.css'
+import Github from '@/components/github.astro'
+import Linkedin from '@/components/linkedin.astro'
+import { Button } from '@/components/ui/button'
 
 type Props = { description?: string; title?: string }
 
@@ -37,6 +38,7 @@ const { description, title } = Astro.props
           <span class="sr-only">Joshua Richardson Portfolio</span>
           <span class="text-xl font-bold text-cyan-400 lg:text-2xl">JR</span>
         </a>
+
         <nav class="flex gap-6">
           <a
             href="https://github.com/joshatbond"
@@ -46,6 +48,7 @@ const { description, title } = Astro.props
             <Github class="h-6 w-6 lg:h-8 lg:w-8" />
             <span class="sr-only">GitHub</span>
           </a>
+
           <a
             href="https://www.linkedin.com/in/richardson-joshua/"
             target="_blank"
@@ -53,6 +56,18 @@ const { description, title } = Astro.props
           >
             <Linkedin class="h-6 w-6 lg:h-8 lg:w-8" />
             <span class="sr-only">LinkedIn</span>
+          </a>
+
+          <a
+            href="/resume.pdf"
+            download="Joshua Richardson Resume"
+            class="w-full min-w-44 sm:w-auto"
+          >
+            <Button
+              className="bg-cyan-500 px-2 text-lg text-gray-900 hover:bg-cyan-600"
+            >
+              CV
+            </Button>
           </a>
         </nav>
       </div>

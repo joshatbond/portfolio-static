@@ -1,6 +1,6 @@
 ---
-import Layout from '../layouts/Layout.astro'
-import { Button } from '../components/ui/button'
+import Layout from '@/layouts/Layout.astro'
+import { Button } from '@/components/ui/button'
 ---
 
 <Layout>
@@ -25,18 +25,6 @@ import { Button } from '../components/ui/button'
       <div
         class="flex flex-col justify-center space-y-4 self-stretch sm:flex-row sm:space-y-0 sm:space-x-4"
       >
-        <a
-          href="/resume.pdf"
-          download="Joshua Richardson Resume"
-          class="w-full min-w-44 sm:w-auto"
-        >
-          <Button
-            className="w-full bg-cyan-500 px-8 py-3 text-lg text-gray-900 hover:bg-cyan-600"
-          >
-            CV
-          </Button>
-        </a>
-
         <a href="/projects" class="w-full min-w-44 sm:w-auto">
           <Button
             variant="outline"
