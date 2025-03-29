@@ -105,20 +105,23 @@ const { description, title } = Astro.props
       | 'light'
       | 'system'
       | null
+
     if (userChoice && userChoice !== 'system') {
       toggle.checked = userChoice === 'dark'
-      applyTheme(userChoice === 'dark')
+      document.documentElement.classList.toggle('dark', userChoice === 'dark')
     } else {
       const darkModeMediaQuery = window.matchMedia(
         '(prefers-color-scheme: dark)'
       )
-      if (darkModeMediaQuery.matches) {
-        toggle.checked = true
-        applyTheme(true)
-      }
+      toggle.checked = darkModeMediaQuery.matches
+      document.documentElement.classList.toggle(
+        'dark',
+        darkModeMediaQuery.matches
+      )
 
       darkModeMediaQuery.addEventListener('change', e => {
-        applyTheme(e.matches)
+        toggle.checked = e.matches
+        document.documentElement.classList.toggle('dark', e.matches)
       })
     }
 
@@ -126,7 +129,7 @@ const { description, title } = Astro.props
       const userChoice = (e.currentTarget as HTMLInputElement).checked
         ? 'dark'
         : 'light'
-      applyTheme(userChoice === 'dark')
+      document.documentElement.classList.toggle('dark', userChoice === 'dark')
       window.localStorage.setItem('color-mode', userChoice)
     })
   }
@@ -147,9 +150,6 @@ const { description, title } = Astro.props
     observer.observe(header, { attributes: true, attributeFilter: ['style'] })
   }
 
-  function applyTheme(isDark: boolean) {
-    document.documentElement.classList.toggle('dark', isDark)
-  }
   function getElementById<T extends HTMLElement>(id: string) {
     const el = document.getElementById(id)
     if (!el) throw new Error(`No element with id ${id}`)
