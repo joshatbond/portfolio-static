@@ -81,12 +81,4 @@ export const projects = [
     liveUrl: 'https://grepl.cursedtale.com',
     githubUrl: 'https://github.com/joshatbond/grepl',
   },
-  {
-    title: 'Portfolio',
-    description: 'This very website',
-    image: '/portfolio.png',
-    technologies: ['Astro.js', 'React', 'Shadcn', 'React-Three-Fiber'],
-    liveUrl: 'https://portfolio.cursedtale.com',
-    githubUrl: 'https://github.com/joshatbond/portfolio-static',
-  },
 ]
