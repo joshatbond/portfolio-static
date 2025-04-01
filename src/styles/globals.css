@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
-@custom-variant active (&:hover, &:active, &:focus-visible);
+@custom-variant active-state (&:hover, &:active, &:focus-visible);
 
 :root {
   --radius: 0.625rem;
