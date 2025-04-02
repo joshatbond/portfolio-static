@@ -97,7 +97,9 @@ const { description, title } = Astro.props
       </div>
     </header>
 
-    <slot />
+    <div class="min-h-screen flex flex-col pt-[var(--header-height)]">
+      <slot />
+    </div>
 
     <footer
       class="w-full shrink-0 border-t border-gray-800 px-4 py-6 lg:px-8 lg:py-8"
@@ -161,7 +163,6 @@ const { description, title } = Astro.props
     if (!header) throw new Error('Elements not found')
 
     let height = window.getComputedStyle(header).height
-    document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
     document.documentElement.style.setProperty('--header-height', height)
 
     const observer = new MutationObserver(() => {
