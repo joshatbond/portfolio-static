@@ -1,5 +1,29 @@
 ---
 import Layout from '@/layouts/Layout.astro'
+
+const images = [
+  'wearebond',
+  'barbie',
+  'accelarise',
+  'oppenheimer',
+  'expend4bles',
+  'skydance',
+  'wild-rift',
+  'remix-rumble',
+  'watchers',
+  'joker',
+].map(name => {
+  return {
+    front: {
+      src: `/cards/${name}-2x.png`,
+      srcset: `/cards/${name}-1x.png 1x, /cards/${name}-2x.png 2x`,
+    },
+    back: {
+      src: `/cards/card-back-2x.png`,
+      srcset: `/cards/card-back-1x.png 1x, /cards/card-back-2x.png 2x`,
+    },
+  }
+})
 ---
 
 <Layout>
@@ -15,8 +39,57 @@ import Layout from '@/layouts/Layout.astro'
       </p>
     </header>
 
-    <div class="flex-grow"></div>
+    <div class="min-h-[30vh] flex-grow"></div>
 
-    <div class="w-full bg-white/20"></div>
+    <div
+      class="auto-cols-full grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overscroll-contain rounded bg-white/20 p-4"
+    >
+      {
+        images.map(({ front, back }) => (
+          <div class="group h-[561px] w-[374px] snap-center bg-transparent perspective-distant">
+            <div class="relative h-full w-full transition-transform duration-700 transform-3d group-hover:rotate-y-180">
+              <img
+                src={back.src}
+                srcset={back.srcset}
+                class="absolute inset-0 backface-hidden"
+              />
+
+              <img
+                src={front.src}
+                srcset={front.srcset}
+                class="absolute inset-0 rotate-y-180 backface-hidden"
+              />
+            </div>
+          </div>
+        ))
+      }
+      <div></div>
+      <img
+        src="/cards/card-back-2x.png"
+        srcset="/cards/card-back-1x.png 1x, /cards/card-back-2x.png 2x"
+        loading="eager"
+        alt="Default project card back. A black background with an orange trim with the word BOND centered"
+      />
+    </div>
   </main>
+
+  <script>
+    const cards = document.querySelectorAll('.transition-transform')
+
+    if (cards) {
+      cards.forEach((card, index) => {
+        const front = card.children[1] as HTMLImageElement
+        if (!front) return
+
+        front.onload = () => {
+          setTimeout(
+            () => {
+              card.classList.add('rotate-y-180')
+            },
+            250 + index * 100
+          )
+        }
+      })
+    }
+  </script>
 </Layout>
