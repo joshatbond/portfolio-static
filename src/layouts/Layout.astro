@@ -1,7 +1,7 @@
 ---
-import '../styles/globals.css'
-import Github from '../components/github.astro'
-import Linkedin from '../components/linkedin.astro'
+import '@/styles/globals.css'
+import Github from '@/components/github.astro'
+import Linkedin from '@/components/linkedin.astro'
 
 type Props = { description?: string; title?: string }
 
@@ -28,37 +28,78 @@ const { description, title } = Astro.props
     <title>{`CursedTale${title ? ` | ${title}` : ''}`}</title>
   </head>
 
-  <body class="bg-gray-900 text-white">
-    <header class="border-b border-gray-800 bg-gray-900">
+  <body class="text-primary">
+    <header
+      class="border-border bg-muted/20 fixed inset-x-0 top-0 border-b backdrop-blur-xl"
+    >
       <div
         class="mx-auto flex max-w-screen-xl items-center justify-between p-4 lg:p-8"
       >
         <a class="flex items-center justify-center" href="/">
-          <span class="sr-only">Joshua Richardson Portfolio</span>
-          <span class="text-xl font-bold text-cyan-400 lg:text-2xl">JR</span>
+          <div class="group relative">
+            <span
+              class="text-secondary-foreground active-state:text-primary-selected text-xl font-bold lg:text-2xl"
+            >
+              Josh R
+            </span>
+
+            <span
+              class="text-primary-selected absolute inset-0 text-xl font-bold opacity-0 transition-opacity duration-500 group-hover:opacity-100 lg:text-2xl"
+            >
+              Josh R
+            </span>
+          </div>
+
+          <span class="sr-only">Joshua Richardson's Portfolio</span>
         </a>
+
         <nav class="flex gap-6">
-          <a
-            href="https://github.com/joshatbond"
-            target="_blank"
-            class="text-white transition-colors hover:text-cyan-400"
-          >
-            <Github class="h-6 w-6 lg:h-8 lg:w-8" />
+          <div class="grid place-items-center">
+            <input
+              type="checkbox"
+              id="toggle"
+              class="toggle active-state:[--base-size:1.5rem] active-state:lg:[--base-size:2rem] lg:[--base-size:1.8rem]"
+            />
+          </div>
+
+          <a href="https://github.com/joshatbond" target="_blank">
+            <div class="group relative">
+              <Github class="text-secondary-foreground size-6 lg:size-8" />
+
+              <div
+                class="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+              >
+                <Github class="text-primary-selected size-6 lg:size-8" />
+              </div>
+            </div>
+
             <span class="sr-only">GitHub</span>
           </a>
+
           <a
             href="https://www.linkedin.com/in/richardson-joshua/"
             target="_blank"
-            class="text-white transition-colors hover:text-cyan-400"
+            class="text-primary active-state:text-primary-selected transition-colors"
           >
-            <Linkedin class="h-6 w-6 lg:h-8 lg:w-8" />
+            <div class="group relative">
+              <Linkedin class="text-secondary-foreground size-6 lg:size-8" />
+
+              <div
+                class="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+              >
+                <Linkedin class="text-primary-selected size-6 lg:size-8" />
+              </div>
+            </div>
+
             <span class="sr-only">LinkedIn</span>
           </a>
         </nav>
       </div>
     </header>
 
-    <slot />
+    <div class="min-h-screen flex flex-col pt-[var(--header-height)]">
+      <slot />
+    </div>
 
     <footer
       class="w-full shrink-0 border-t border-gray-800 px-4 py-6 lg:px-8 lg:py-8"
@@ -77,15 +118,68 @@ const { description, title } = Astro.props
 </html>
 
 <script>
-  const header = document.querySelector('header')
+  main()
+  function main() {
+    applyHeaderHeight()
+    setColorMode()
+  }
+  function setColorMode() {
+    const toggle = getElementById<HTMLInputElement>('toggle')
+    const userChoice = window.localStorage.getItem('color-mode') as
+      | 'dark'
+      | 'light'
+      | 'system'
+      | null
 
-  if (!header) throw new Error('Elements not found')
-  let height = window.getComputedStyle(header).height
-  document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
+    if (userChoice && userChoice !== 'system') {
+      toggle.checked = userChoice === 'dark'
+      document.documentElement.classList.toggle('dark', userChoice === 'dark')
+    } else {
+      const darkModeMediaQuery = window.matchMedia(
+        '(prefers-color-scheme: dark)'
+      )
+      toggle.checked = darkModeMediaQuery.matches
+      document.documentElement.classList.toggle(
+        'dark',
+        darkModeMediaQuery.matches
+      )
 
-  const observer = new MutationObserver(() => {
-    const { height } = window.getComputedStyle(header)
-    document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
-  })
-  observer.observe(header, { attributes: true, attributeFilter: ['style'] })
+      darkModeMediaQuery.addEventListener('change', e => {
+        toggle.checked = e.matches
+        document.documentElement.classList.toggle('dark', e.matches)
+      })
+    }
+
+    toggle.addEventListener('change', e => {
+      const userChoice = (e.currentTarget as HTMLInputElement).checked
+        ? 'dark'
+        : 'light'
+      document.documentElement.classList.toggle('dark', userChoice === 'dark')
+      window.localStorage.setItem('color-mode', userChoice)
+    })
+  }
+  function applyHeaderHeight() {
+    const header = document.querySelector('header')
+    if (!header) throw new Error('Elements not found')
+
+    let height = window.getComputedStyle(header).height
+    document.documentElement.style.setProperty('--header-height', height)
+
+    const observer = new MutationObserver(() => {
+      const { height } = window.getComputedStyle(header)
+      document.documentElement.style.setProperty('--header-height', height)
+      document.body.style.setProperty(
+        '--body-height',
+        `calc(100vh - ${height})`
+      )
+    })
+    observer.observe(header, { attributes: true, attributeFilter: ['style'] })
+  }
+
+  function getElementById<T extends HTMLElement>(id: string) {
+    const el = document.getElementById(id)
+    if (!el) throw new Error(`No element with id ${id}`)
+
+    return el as T
+  }
 </script>
