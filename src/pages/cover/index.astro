@@ -5,9 +5,11 @@ import CoverLetterGenerator from './_components/Generator'
 
 <Layout title="Cover">
   <main
-    class="flex min-h-[var(--body-height)] max-w-screen-xl flex-col bg-gray-900 text-gray-100 lg:mx-auto"
+    class="grid h-[var(--body-height)] grid-cols-1 grid-rows-1 place-items-center"
   >
-    <article class="relative flex-1 p-4 lg:p-8">
+    <article
+      class="@container relative h-[var(--body-height)] w-full max-w-prose flex-1 overflow-auto p-4 lg:p-8"
+    >
       <CoverLetterGenerator client:load />
     </article>
   </main>

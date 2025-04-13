@@ -64,25 +64,25 @@ export default function CoverLetterGenerator() {
   return (
     <FormProvider>
       <>
-        <header className="flex max-w-prose flex-col gap-6 sm:mx-auto sm:flex-row">
+        <header className="flex flex-col gap-6 @md:flex-row @md:gap-4">
           <Button
             onClick={handleClick}
-            className="w-full bg-cyan-500 px-3 py-1 text-lg text-gray-900 hover:bg-cyan-600 sm:px-8 sm:py-3"
+            className="bg-primary text-primary-foreground flex-grow px-3 py-1 text-lg hover:bg-cyan-600 sm:px-8 sm:py-3"
           >
             Download
           </Button>
 
           <Button
             onClick={copyText}
-            className="w-full bg-cyan-500 px-3 py-1 text-lg text-gray-900 hover:bg-cyan-600 sm:px-8 sm:py-3"
+            className="bg-primary text-primary-foreground flex-grow px-3 py-1 text-lg hover:bg-cyan-600 sm:px-8 sm:py-3"
           >
             {isCopied ? 'Copied!' : 'Copy'}
           </Button>
 
           <Button
             onClick={() => showFormAssign(p => !p)}
-            variant={showForm ? 'outline' : 'ghost'}
-            className="border-cyan-500 bg-transparent text-cyan-400 hover:bg-cyan-500 hover:text-gray-900"
+            variant="outline"
+            className="border-primary text-secondary-foreground bg-transparent hover:bg-cyan-500"
           >
             <Settings className="h-6 w-6" />
           </Button>
@@ -99,7 +99,7 @@ const Output = forwardRef<HTMLDivElement, { showForm: boolean }>(
     const { state } = useForm()
 
     return (
-      <div className="max-w-prose pt-4 lg:mx-auto">
+      <div className="overflow-auto pt-4 lg:mx-auto">
         <div ref={ref} className="relative space-y-4">
           <p>
             Dear <Field placeholder="Company" value={state.companyName.value} />{' '}
@@ -205,7 +205,7 @@ function Form() {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '-100%', opacity: 0 }}
       transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-      className="absolute inset-0 -mx-px !-mt-4 h-[--form-height] space-y-6 bg-gray-900 pt-4"
+      className="bg-primary text-primary-foreground absolute inset-0 top-4 -mx-px !-mt-4 h-[--form-height] space-y-6 pt-4 backdrop-blur-xl"
     >
       <section>
         <h2 className="bg-white/10 px-2 py-1 pb-2 text-xl font-semibold">
@@ -300,22 +300,22 @@ function TextInput({
   autoFocus?: boolean
 }) {
   return (
-    <fieldset className="flex items-end justify-start gap-4">
+    <fieldset
+      className={`grid items-end justify-start gap-4 ${checkbox ? 'grid-cols-[auto_1fr_auto]' : 'grid-cols-[auto_1fr]'}`}
+    >
+      <label htmlFor={id}>{label}</label>
+
+      <input
+        type="text"
+        className="border-b-border hover:border-b-primary focus:border-primary rounded-t-md border-b-2 bg-transparent p-2 pb-1 outline-none hover:bg-white/10 focus:bg-white/10"
+        id={id}
+        name={name}
+        value={value}
+        onChange={e => update(e.target.value)}
+        autoFocus={autoFocus}
+      />
+
       {checkbox}
-
-      <label className="flex flex-1 items-end gap-4" htmlFor={id}>
-        <span className="min-w-[3rem]">{label}</span>
-
-        <input
-          type="text"
-          className="w-full min-w-[20rem] rounded-t-md border-b-2 border-b-border bg-transparent p-2 pb-1 outline-none hover:border-b-primary hover:bg-white/10 focus:border-primary focus:bg-white/10"
-          id={id}
-          name={name}
-          value={value}
-          onChange={e => update(e.target.value)}
-          autoFocus={autoFocus}
-        />
-      </label>
     </fieldset>
   )
 }
