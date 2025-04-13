@@ -28,7 +28,7 @@ const { description, title } = Astro.props
     <title>{`CursedTale${title ? ` | ${title}` : ''}`}</title>
   </head>
 
-  <body class="text-primary">
+  <body class="text-primary" style="--header-height: 97px;">
     <header
       class="border-border bg-muted/20 fixed inset-x-0 top-0 border-b backdrop-blur-xl"
     >
@@ -97,7 +97,7 @@ const { description, title } = Astro.props
       </div>
     </header>
 
-    <div class="min-h-screen flex flex-col pt-[var(--header-height)]">
+    <div class="flex min-h-screen flex-col pt-[var(--header-height)]">
       <slot />
     </div>
 
@@ -163,11 +163,12 @@ const { description, title } = Astro.props
     if (!header) throw new Error('Elements not found')
 
     let height = window.getComputedStyle(header).height
-    document.documentElement.style.setProperty('--header-height', height)
+    document.body.style.setProperty('--header-height', height)
+    document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
 
     const observer = new MutationObserver(() => {
       const { height } = window.getComputedStyle(header)
-      document.documentElement.style.setProperty('--header-height', height)
+      document.body.style.setProperty('--header-height', height)
       document.body.style.setProperty(
         '--body-height',
         `calc(100vh - ${height})`
