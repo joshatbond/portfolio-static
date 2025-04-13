@@ -42,12 +42,12 @@ const images = [
     <div class="min-h-[30vh] flex-grow"></div>
 
     <div
-      class="auto-cols-full grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overscroll-contain rounded bg-white/20 p-4"
+      class="auto-cols-full bg-primary/20 grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overscroll-contain rounded p-4"
     >
       {
-        images.map(({ front, back }) => (
+        images.map(({ front, back }, i) => (
           <div class="group h-[561px] w-[374px] snap-center bg-transparent perspective-distant">
-            <div class="relative h-full w-full transition-transform duration-700 transform-3d group-hover:rotate-y-180">
+            <div class="relative h-full w-full transition-transform duration-700 transform-3d">
               <img
                 src={back.src}
                 srcset={back.srcset}
@@ -58,18 +58,12 @@ const images = [
                 src={front.src}
                 srcset={front.srcset}
                 class="absolute inset-0 rotate-y-180 backface-hidden"
+                loading={i < 3 ? 'eager' : 'lazy'}
               />
             </div>
           </div>
         ))
       }
-      <div></div>
-      <img
-        src="/cards/card-back-2x.png"
-        srcset="/cards/card-back-1x.png 1x, /cards/card-back-2x.png 2x"
-        loading="eager"
-        alt="Default project card back. A black background with an orange trim with the word BOND centered"
-      />
     </div>
   </main>
 
