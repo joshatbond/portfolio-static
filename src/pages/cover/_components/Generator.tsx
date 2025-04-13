@@ -205,7 +205,7 @@ function Form() {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: '-100%', opacity: 0 }}
       transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-      className="bg-primary text-primary-foreground absolute inset-0 top-4 -mx-px !-mt-4 h-[--form-height] space-y-6 pt-4 backdrop-blur-xl"
+      className="bg-secondary text-secondary-foreground absolute inset-0 top-4 -mx-px !-mt-4 h-[--form-height] space-y-6 pt-4 backdrop-blur-xl"
     >
       <section>
         <h2 className="bg-white/10 px-2 py-1 pb-2 text-xl font-semibold">
