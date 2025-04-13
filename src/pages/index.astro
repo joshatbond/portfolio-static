@@ -45,7 +45,7 @@ const images = [
       class="auto-cols-full bg-primary/20 grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overscroll-contain rounded p-4"
     >
       {
-        images.map(({ front, back }, i) => (
+        images.map(({ front, back }) => (
           <div class="group h-[561px] w-[374px] snap-center bg-transparent perspective-distant">
             <div class="relative h-full w-full transition-transform duration-700 transform-3d">
               <img
@@ -58,7 +58,6 @@ const images = [
                 src={front.src}
                 srcset={front.srcset}
                 class="absolute inset-0 rotate-y-180 backface-hidden"
-                loading={i < 3 ? 'eager' : 'lazy'}
               />
             </div>
           </div>
