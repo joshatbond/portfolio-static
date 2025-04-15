@@ -180,7 +180,7 @@ const { description, title } = Astro.props
     document.body.style.setProperty('--header-height', height)
     document.body.style.setProperty('--body-height', `calc(100vh - ${height})`)
 
-    const observer = new MutationObserver(() => {
+    const observer = new ResizeObserver(() => {
       const { height } = window.getComputedStyle(header)
       document.body.style.setProperty('--header-height', height)
       document.body.style.setProperty(
@@ -188,7 +188,7 @@ const { description, title } = Astro.props
         `calc(100vh - ${height})`
       )
     })
-    observer.observe(header, { attributes: true, attributeFilter: ['style'] })
+    observer.observe(header)
   }
 
   function getElementById<T extends HTMLElement>(id: string) {
