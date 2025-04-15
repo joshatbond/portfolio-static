@@ -207,13 +207,25 @@ export default function spriteIconPlugin(options: Options): PluginOption {
       })
     },
     async load(id) {
-      if (id !== resolvedVirtualModuleId) return null
+      if (id === resolvedVirtualModuleId) {
+        // Check against the prefixed ID
+        if (svgSpriteContent === null) {
+          await updateSpriteAndDts()
+        }
+        const svgString = svgSpriteContent ?? ''
+        const moduleCode = `export default ${JSON.stringify(svgString)};`
 
-      if (svgSpriteContent === null) await updateSpriteAndDts()
-      return { code: svgSpriteContent ?? '', map: null }
+        return { code: moduleCode, map: null } // Return JS code
+      }
+
+      return null
     },
     resolveId(id) {
-      return id === resolvedVirtualModuleId ? resolvedVirtualModuleId : null
+      if (id === virtualModuleId) {
+        const resolvedId = resolvedVirtualModuleId
+        return resolvedId
+      }
+      return null
     },
   }
 
@@ -397,7 +409,7 @@ function processSvg(content: string, id: string) {
     )
   }
 
-  return `<symbol id="${id}" viewBox="${viewBox}">${innerContent}</symbol>`
+  return `<symbol id="${id}" fill="currentColor" viewBox="${viewBox}">${innerContent}</symbol>`
 }
 
 /**
