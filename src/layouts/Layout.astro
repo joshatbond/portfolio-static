@@ -1,7 +1,7 @@
 ---
 import '@/styles/globals.css'
-import Github from '@/components/github.astro'
-import Linkedin from '@/components/linkedin.astro'
+import Icon from '@/components/Icon.astro'
+import svgSpriteContent from 'virtual:svg-sprite'
 
 type Props = { description?: string; title?: string }
 
@@ -29,6 +29,8 @@ const { description, title } = Astro.props
   </head>
 
   <body class="text-primary" style="--header-height: 97px;">
+    <div set:html={svgSpriteContent} style="display: none;" />
+
     <header
       class="border-border bg-muted/20 fixed inset-x-0 top-0 border-b backdrop-blur-xl"
     >
@@ -64,12 +66,18 @@ const { description, title } = Astro.props
 
           <a href="https://github.com/joshatbond" target="_blank">
             <div class="group relative">
-              <Github class="text-secondary-foreground size-6 lg:size-8" />
+              <Icon
+                id="icon-github"
+                className="text-secondary-foreground size-6 lg:size-8"
+              />
 
               <div
                 class="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
               >
-                <Github class="text-primary-selected size-6 lg:size-8" />
+                <Icon
+                  id="icon-github"
+                  className="text-primary-selected size-6 lg:size-8"
+                />
               </div>
             </div>
 
@@ -82,12 +90,18 @@ const { description, title } = Astro.props
             class="text-primary active-state:text-primary-selected transition-colors"
           >
             <div class="group relative">
-              <Linkedin class="text-secondary-foreground size-6 lg:size-8" />
+              <Icon
+                id="icon-linkedin"
+                className="text-secondary-foreground size-6 lg:size-8"
+              />
 
               <div
                 class="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
               >
-                <Linkedin class="text-primary-selected size-6 lg:size-8" />
+                <Icon
+                  id="icon-linkedin"
+                  className="text-primary-selected size-6 lg:size-8"
+                />
               </div>
             </div>
 

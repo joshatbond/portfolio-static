@@ -1,0 +1,11 @@
+---
+import type { SvgIconId } from '@/svg-sprite'
+
+type Props = { id: SvgIconId; className?: string }
+
+const { className, id } = Astro.props
+---
+
+<svg class={className}>
+  <use href={`#${id}`}></use>
+</svg>
