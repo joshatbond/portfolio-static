@@ -14,6 +14,7 @@ export default defineConfig(
         svgSprite({
           inputDir: 'src/sprites',
           dtsOutputFile: 'src/svg-sprite.d.ts',
+          useSvgo: false,
         }),
       ],
     },
