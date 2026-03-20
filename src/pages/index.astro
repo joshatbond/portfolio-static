@@ -46,15 +46,22 @@ const images = [
     >
       {
         images.map(({ front, back }) => (
-          <div class="group h-[561px] w-[374px] snap-center bg-transparent perspective-distant">
+          <div
+            class="card-flip group h-[561px] w-[374px] cursor-pointer snap-center bg-transparent select-none perspective-distant [&_img]:[-webkit-user-drag:none]"
+            role="button"
+            tabindex="0"
+            aria-label="Flip card"
+          >
             <div class="relative h-full w-full transition-transform duration-700 transform-3d">
               <img
+                draggable={false}
                 src={back.src}
                 srcset={back.srcset}
                 class="absolute inset-0 backface-hidden"
               />
 
               <img
+                draggable={false}
                 src={front.src}
                 srcset={front.srcset}
                 class="absolute inset-0 rotate-y-180 backface-hidden"
@@ -67,22 +74,75 @@ const images = [
   </main>
 
   <script>
-    const cards = document.querySelectorAll('.transition-transform')
+    const wrappers = document.querySelectorAll('.card-flip')
+    const visibleRatio = 0.8
 
-    if (cards) {
-      cards.forEach((card, index) => {
-        const front = card.children[1] as HTMLImageElement
-        if (!front) return
+    wrappers.forEach((wrapper, index) => {
+      const inner = wrapper.querySelector('.transition-transform')
+      if (!(inner instanceof HTMLElement)) return
 
-        front.onload = () => {
-          setTimeout(
-            () => {
-              card.classList.add('rotate-y-180')
-            },
-            250 + index * 100
-          )
+      const front = inner.children[1] as HTMLImageElement
+      if (!front) return
+
+      let imageReady = front.complete && front.naturalWidth > 0
+      let isMostlyVisible = false
+      let didReveal = false
+
+      const scheduleReveal = () => {
+        setTimeout(
+          () => {
+            inner.classList.add('rotate-y-180')
+          },
+          250 + index * 100
+        )
+      }
+
+      const tryReveal = () => {
+        if (didReveal || !imageReady || !isMostlyVisible) return
+        didReveal = true
+        scheduleReveal()
+        observer.unobserve(wrapper)
+      }
+
+      const observer = new IntersectionObserver(
+        entries => {
+          const entry = entries[0]
+          if (!entry) return
+          isMostlyVisible = entry.intersectionRatio >= visibleRatio
+          tryReveal()
+        },
+        {
+          threshold: [0, 0.25, 0.5, 0.75, visibleRatio, 1],
+        }
+      )
+
+      observer.observe(wrapper)
+
+      if (!imageReady) {
+        front.addEventListener(
+          'load',
+          () => {
+            imageReady = true
+            tryReveal()
+          },
+          { once: true }
+        )
+      } else {
+        tryReveal()
+      }
+
+      const toggle = () => {
+        inner.classList.toggle('rotate-y-180')
+      }
+
+      wrapper.addEventListener('click', toggle)
+      wrapper.addEventListener('keydown', e => {
+        const ke = e as KeyboardEvent
+        if (ke.key === 'Enter' || ke.key === ' ') {
+          ke.preventDefault()
+          toggle()
         }
       })
-    }
+    })
   </script>
 </Layout>
