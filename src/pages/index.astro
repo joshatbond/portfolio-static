@@ -1,5 +1,16 @@
 ---
+import '@/styles/card-holo.css'
 import Layout from '@/layouts/Layout.astro'
+
+/** Galaxy texture offset per card (same idea as upstream cosmosPosition). */
+const cosmosBgFor = (name: string) => {
+  let h = 0
+  for (let i = 0; i < name.length; i++)
+    h = (Math.imul(31, h) + name.charCodeAt(i)) >>> 0
+  const x = h % 734
+  const y = (h >>> 8) % 1280
+  return `${x}px ${y}px`
+}
 
 const images = [
   'wearebond',
@@ -14,6 +25,7 @@ const images = [
   'joker',
 ].map(name => {
   return {
+    cosmosBg: cosmosBgFor(name),
     front: {
       src: `/cards/${name}-2x.png`,
       srcset: `/cards/${name}-1x.png 1x, /cards/${name}-2x.png 2x`,
@@ -45,26 +57,36 @@ const images = [
       class="auto-cols-full bg-primary/20 grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded p-4"
     >
       {
-        images.map(({ front, back }) => (
+        images.map(({ front, back, cosmosBg }) => (
           <div
             class="card-flip group h-[561px] w-[374px] cursor-pointer snap-center bg-transparent select-none perspective-distant [&_img]:[-webkit-user-drag:none]"
             role="button"
             tabindex="0"
             aria-label="Flip card"
+            style={`--cosmosbg: ${cosmosBg};`}
           >
-            <div class="relative h-full w-full transition-transform duration-700 transform-3d">
+            <div class="card-flip-inner relative h-full w-full transition-transform duration-700 transform-3d">
               <img
                 draggable={false}
                 src={back.src}
                 srcset={back.srcset}
-                class="absolute inset-0 backface-hidden"
+                class="absolute inset-0 z-0 backface-hidden"
               />
 
               <img
                 draggable={false}
                 src={front.src}
                 srcset={front.srcset}
-                class="absolute inset-0 rotate-y-180 backface-hidden"
+                class="absolute inset-0 z-[1] rotate-y-180 backface-hidden"
+              />
+
+              <span
+                class="card__shine absolute z-[2] rotate-y-180 backface-hidden"
+                aria-hidden="true"
+              />
+              <span
+                class="card__glare absolute z-[3] rotate-y-180 backface-hidden"
+                aria-hidden="true"
               />
             </div>
           </div>
@@ -74,15 +96,29 @@ const images = [
   </main>
 
   <script>
+    const clamp = (v: number, lo: number, hi: number) =>
+      Math.min(hi, Math.max(lo, v))
+    const round = (v: number) => Math.round(v)
+    const adjust = (
+      value: number,
+      fromMin: number,
+      fromMax: number,
+      toMin: number,
+      toMax: number
+    ) => toMin + (toMax - toMin) * ((value - fromMin) / (fromMax - fromMin))
+
     const wrappers = document.querySelectorAll('.card-flip')
     const visibleRatio = 0.8
 
-    wrappers.forEach((wrapper, index) => {
-      const inner = wrapper.querySelector('.transition-transform')
+    wrappers.forEach((wrapperEl, index) => {
+      if (!(wrapperEl instanceof HTMLElement)) return
+      const wrapper = wrapperEl
+
+      const inner = wrapper.querySelector('.card-flip-inner')
       if (!(inner instanceof HTMLElement)) return
 
       const front = inner.children[1] as HTMLImageElement
-      if (!front) return
+      if (!front || front.tagName !== 'IMG') return
 
       let imageReady = front.complete && front.naturalWidth > 0
       let isMostlyVisible = false
@@ -141,6 +177,67 @@ const images = [
         if (ke.key === 'Enter' || ke.key === ' ') {
           ke.preventDefault()
           toggle()
+        }
+      })
+
+      /** Holo pointer → CSS vars (pokemon-cards-css style) */
+      let holoRaf = 0
+      let pendingXY: { x: number; y: number } | null = null
+
+      const applyPointer = (clientX: number, clientY: number) => {
+        const rect = wrapper.getBoundingClientRect()
+        const ax = clientX - rect.left
+        const ay = clientY - rect.top
+        const px = clamp(round((100 / rect.width) * ax), 0, 100)
+        const py = clamp(round((100 / rect.height) * ay), 0, 100)
+        const fromLeft = px / 100
+        const fromTop = py / 100
+        const fromCenter = clamp(
+          Math.sqrt((py - 50) ** 2 + (px - 50) ** 2) / 50,
+          0,
+          1
+        )
+        wrapper.style.setProperty('--pointer-x', `${px}%`)
+        wrapper.style.setProperty('--pointer-y', `${py}%`)
+        wrapper.style.setProperty(
+          '--background-x',
+          `${adjust(px, 0, 100, 37, 63)}%`
+        )
+        wrapper.style.setProperty(
+          '--background-y',
+          `${adjust(py, 0, 100, 33, 67)}%`
+        )
+        wrapper.style.setProperty('--pointer-from-left', String(fromLeft))
+        wrapper.style.setProperty('--pointer-from-top', String(fromTop))
+        wrapper.style.setProperty('--pointer-from-center', String(fromCenter))
+      }
+
+      const flushPointer = () => {
+        holoRaf = 0
+        if (pendingXY) {
+          applyPointer(pendingXY.x, pendingXY.y)
+          pendingXY = null
+        }
+      }
+
+      wrapper.addEventListener('pointerenter', () => {
+        wrapper.style.setProperty('--card-opacity', '1')
+      })
+
+      wrapper.addEventListener('pointermove', e => {
+        const pe = e as PointerEvent
+        pendingXY = { x: pe.clientX, y: pe.clientY }
+        if (!holoRaf) {
+          holoRaf = requestAnimationFrame(flushPointer)
+        }
+      })
+
+      wrapper.addEventListener('pointerleave', () => {
+        wrapper.style.setProperty('--card-opacity', '0')
+        pendingXY = null
+        if (holoRaf) {
+          cancelAnimationFrame(holoRaf)
+          holoRaf = 0
         }
       })
     })
