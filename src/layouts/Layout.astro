@@ -28,8 +28,12 @@ const { description, title } = Astro.props
     <title>{`CursedTale${title ? ` | ${title}` : ''}`}</title>
   </head>
 
-  <body class="text-primary" style="--header-height: 97px;">
+  <body class="text-primary">
     <div set:html={svgSpriteContent} style="display: none;" />
+
+    <div class="flex min-h-screen flex-col pt-[var(--header-height)]">
+      <slot />
+    </div>
 
     <header
       class="border-border bg-muted/20 fixed inset-x-0 top-0 border-b backdrop-blur-xl"
@@ -110,10 +114,6 @@ const { description, title } = Astro.props
         </nav>
       </div>
     </header>
-
-    <div class="flex min-h-screen flex-col pt-[var(--header-height)]">
-      <slot />
-    </div>
 
     <footer
       class="w-full shrink-0 border-t border-gray-800 px-4 py-6 lg:px-8 lg:py-8"
