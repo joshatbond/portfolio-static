@@ -53,47 +53,105 @@ const images = [
 
     <div class="min-h-[30vh] flex-grow"></div>
 
-    <div
-      class="auto-cols-full  grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded p-4"
-    >
-      {
-        images.map(({ front, back, cosmosBg }) => (
-          <div
-            class="card-flip group h-[561px] w-[374px] cursor-pointer snap-center bg-transparent select-none perspective-distant [&_img]:pointer-events-none [&_img]:[-webkit-user-drag:none]"
-            role="button"
-            tabindex="0"
-            aria-label="Flip card"
-            style={`--cosmosbg: ${cosmosBg};`}
-          >
-            <div class="card-flip-inner pointer-events-auto relative h-full w-full transition-transform duration-700 transform-3d">
-              <div class="card-flip-tilt relative h-full w-full transform-3d">
-                <img
-                  draggable={false}
-                  src={back.src}
-                  srcset={back.srcset}
-                  class="absolute inset-0 z-0 backface-hidden"
-                />
+    <div class="card-scroll-section flex w-full items-center gap-3">
+      <button
+        type="button"
+        class="card-scroll-prev text-foreground border-border bg-muted/90 hover:bg-muted focus-visible:ring-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full border shadow-md backdrop-blur-sm transition-[opacity,box-shadow,background-color] focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-25"
+        aria-label="Scroll cards left"
+        disabled
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+      </button>
 
-                <img
-                  draggable={false}
-                  src={front.src}
-                  srcset={front.srcset}
-                  class="absolute inset-0 z-[1] rotate-y-180 backface-hidden"
-                />
+      <div class="relative min-w-0 flex-1">
+        <div
+          class="card-scroll-track scrollbar-hide auto-cols-full  relative z-0 grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded p-4"
+        >
+          {
+            images.map(({ front, back, cosmosBg }) => (
+              <div
+                class="card-flip group h-[561px] w-[374px] cursor-pointer snap-center bg-transparent select-none perspective-distant [&_img]:pointer-events-none [&_img]:[-webkit-user-drag:none]"
+                role="button"
+                tabindex="0"
+                aria-label="Flip card"
+                style={`--cosmosbg: ${cosmosBg};`}
+              >
+                <div class="card-flip-inner pointer-events-auto relative h-full w-full transition-transform duration-700 transform-3d">
+                  <div class="card-flip-tilt relative h-full w-full transform-3d">
+                    <img
+                      draggable={false}
+                      src={back.src}
+                      srcset={back.srcset}
+                      class="absolute inset-0 z-0 backface-hidden"
+                    />
 
-                <span
-                  class="card__shine absolute z-[2] rotate-y-180 backface-hidden"
-                  aria-hidden="true"
-                />
-                <span
-                  class="card__glare absolute z-[3] rotate-y-180 backface-hidden"
-                  aria-hidden="true"
-                />
+                    <img
+                      draggable={false}
+                      src={front.src}
+                      srcset={front.srcset}
+                      class="absolute inset-0 z-[1] rotate-y-180 backface-hidden"
+                    />
+
+                    <span
+                      class="card__shine absolute z-[2] rotate-y-180 backface-hidden"
+                      aria-hidden="true"
+                    />
+                    <span
+                      class="card__glare absolute z-[3] rotate-y-180 backface-hidden"
+                      aria-hidden="true"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        ))
-      }
+            ))
+          }
+        </div>
+
+        <div
+          class="card-scroll-hint-left pointer-events-none absolute inset-y-3 left-0 z-[2] w-12 rounded-l-[0.375rem] bg-gradient-to-r from-[var(--bg-body)] via-[var(--bg-body)]/80 to-transparent opacity-0 transition-opacity duration-300"
+          aria-hidden="true"
+        >
+        </div>
+        <div
+          class="card-scroll-hint-right pointer-events-none absolute inset-y-3 right-0 z-[2] w-12 rounded-r-[0.375rem] bg-gradient-to-l from-[var(--bg-body)] via-[var(--bg-body)]/80 to-transparent opacity-0 transition-opacity duration-300"
+          aria-hidden="true"
+        >
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="card-scroll-next text-foreground border-border bg-muted/90 hover:bg-muted focus-visible:ring-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full border shadow-md backdrop-blur-sm transition-[opacity,box-shadow,background-color] focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-25"
+        aria-label="Scroll cards right"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m9 18 6-6-6-6"></path>
+        </svg>
+      </button>
     </div>
   </main>
 
@@ -275,5 +333,54 @@ const images = [
         }
       })
     })
+
+    const track = document.querySelector('.card-scroll-track')
+    const prevBtn = document.querySelector('.card-scroll-prev')
+    const nextBtn = document.querySelector('.card-scroll-next')
+    const hintLeft = document.querySelector('.card-scroll-hint-left')
+    const hintRight = document.querySelector('.card-scroll-hint-right')
+
+    if (
+      track instanceof HTMLElement &&
+      prevBtn instanceof HTMLButtonElement &&
+      nextBtn instanceof HTMLButtonElement
+    ) {
+      const epsilon = 2
+
+      const scrollStep = () => {
+        const card = track.querySelector('.card-flip')
+        const gap = 32
+        if (card instanceof HTMLElement) {
+          return card.getBoundingClientRect().width + gap
+        }
+        return track.clientWidth * 0.85
+      }
+
+      const updateScrollUi = () => {
+        const { scrollLeft, scrollWidth, clientWidth } = track
+        const canLeft = scrollLeft > epsilon
+        const canRight = scrollLeft < scrollWidth - clientWidth - epsilon
+        prevBtn.disabled = !canLeft
+        nextBtn.disabled = !canRight
+        prevBtn.setAttribute('aria-disabled', String(!canLeft))
+        nextBtn.setAttribute('aria-disabled', String(!canRight))
+        hintLeft?.classList.toggle('opacity-100', canLeft)
+        hintLeft?.classList.toggle('opacity-0', !canLeft)
+        hintRight?.classList.toggle('opacity-100', canRight)
+        hintRight?.classList.toggle('opacity-0', !canRight)
+      }
+
+      prevBtn.addEventListener('click', () => {
+        track.scrollBy({ left: -scrollStep(), behavior: 'smooth' })
+      })
+      nextBtn.addEventListener('click', () => {
+        track.scrollBy({ left: scrollStep(), behavior: 'smooth' })
+      })
+
+      track.addEventListener('scroll', updateScrollUi, { passive: true })
+      const ro = new ResizeObserver(() => updateScrollUi())
+      ro.observe(track)
+      updateScrollUi()
+    }
   </script>
 </Layout>
