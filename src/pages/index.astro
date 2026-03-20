@@ -54,40 +54,42 @@ const images = [
     <div class="min-h-[30vh] flex-grow"></div>
 
     <div
-      class="auto-cols-full bg-primary/20 grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded p-4"
+      class="auto-cols-full  grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded p-4"
     >
       {
         images.map(({ front, back, cosmosBg }) => (
           <div
-            class="card-flip group h-[561px] w-[374px] cursor-pointer snap-center bg-transparent select-none perspective-distant [&_img]:[-webkit-user-drag:none]"
+            class="card-flip group h-[561px] w-[374px] cursor-pointer snap-center bg-transparent select-none perspective-distant [&_img]:pointer-events-none [&_img]:[-webkit-user-drag:none]"
             role="button"
             tabindex="0"
             aria-label="Flip card"
             style={`--cosmosbg: ${cosmosBg};`}
           >
-            <div class="card-flip-inner relative h-full w-full transition-transform duration-700 transform-3d">
-              <img
-                draggable={false}
-                src={back.src}
-                srcset={back.srcset}
-                class="absolute inset-0 z-0 backface-hidden"
-              />
+            <div class="card-flip-inner pointer-events-auto relative h-full w-full transition-transform duration-700 transform-3d">
+              <div class="card-flip-tilt relative h-full w-full transform-3d">
+                <img
+                  draggable={false}
+                  src={back.src}
+                  srcset={back.srcset}
+                  class="absolute inset-0 z-0 backface-hidden"
+                />
 
-              <img
-                draggable={false}
-                src={front.src}
-                srcset={front.srcset}
-                class="absolute inset-0 z-[1] rotate-y-180 backface-hidden"
-              />
+                <img
+                  draggable={false}
+                  src={front.src}
+                  srcset={front.srcset}
+                  class="absolute inset-0 z-[1] rotate-y-180 backface-hidden"
+                />
 
-              <span
-                class="card__shine absolute z-[2] rotate-y-180 backface-hidden"
-                aria-hidden="true"
-              />
-              <span
-                class="card__glare absolute z-[3] rotate-y-180 backface-hidden"
-                aria-hidden="true"
-              />
+                <span
+                  class="card__shine absolute z-[2] rotate-y-180 backface-hidden"
+                  aria-hidden="true"
+                />
+                <span
+                  class="card__glare absolute z-[3] rotate-y-180 backface-hidden"
+                  aria-hidden="true"
+                />
+              </div>
             </div>
           </div>
         ))
@@ -117,7 +119,10 @@ const images = [
       const inner = wrapper.querySelector('.card-flip-inner')
       if (!(inner instanceof HTMLElement)) return
 
-      const front = inner.children[1] as HTMLImageElement
+      const tilt = inner.querySelector('.card-flip-tilt')
+      if (!(tilt instanceof HTMLElement)) return
+
+      const front = tilt.children[1] as HTMLImageElement
       if (!front || front.tagName !== 'IMG') return
 
       let imageReady = front.complete && front.naturalWidth > 0
@@ -167,22 +172,16 @@ const images = [
         tryReveal()
       }
 
-      const toggle = () => {
-        inner.classList.toggle('rotate-y-180')
-      }
-
-      wrapper.addEventListener('click', toggle)
-      wrapper.addEventListener('keydown', e => {
-        const ke = e as KeyboardEvent
-        if (ke.key === 'Enter' || ke.key === ' ') {
-          ke.preventDefault()
-          toggle()
-        }
-      })
-
-      /** Holo pointer → CSS vars (pokemon-cards-css style) */
+      /** Holo + tilt pointer → CSS vars (pokemon-cards-css style) */
       let holoRaf = 0
       let pendingXY: { x: number; y: number } | null = null
+      const maxTiltVerticalDeg = 15
+      const maxTiltHorizontalDeg = 30
+
+      const resetTilt = () => {
+        wrapper.style.setProperty('--tilt-x', '0deg')
+        wrapper.style.setProperty('--tilt-y', '0deg')
+      }
 
       const applyPointer = (clientX: number, clientY: number) => {
         const rect = wrapper.getBoundingClientRect()
@@ -210,6 +209,24 @@ const images = [
         wrapper.style.setProperty('--pointer-from-left', String(fromLeft))
         wrapper.style.setProperty('--pointer-from-top', String(fromTop))
         wrapper.style.setProperty('--pointer-from-center', String(fromCenter))
+
+        /* pokemon-cards-css style: rotateY from horizontal offset, rotateX from vertical */
+        if (inner.classList.contains('rotate-y-180')) {
+          const tiltY = clamp(
+            -((px - 50) / 50) * maxTiltHorizontalDeg,
+            -maxTiltHorizontalDeg,
+            maxTiltHorizontalDeg
+          )
+          const tiltX = clamp(
+            ((py - 50) / 50) * maxTiltVerticalDeg,
+            -maxTiltVerticalDeg,
+            maxTiltVerticalDeg
+          )
+          wrapper.style.setProperty('--tilt-x', `${tiltX}deg`)
+          wrapper.style.setProperty('--tilt-y', `${tiltY}deg`)
+        } else {
+          resetTilt()
+        }
       }
 
       const flushPointer = () => {
@@ -234,10 +251,27 @@ const images = [
 
       wrapper.addEventListener('pointerleave', () => {
         wrapper.style.setProperty('--card-opacity', '0')
+        resetTilt()
         pendingXY = null
         if (holoRaf) {
           cancelAnimationFrame(holoRaf)
           holoRaf = 0
+        }
+      })
+
+      const toggle = () => {
+        inner.classList.toggle('rotate-y-180')
+        if (!inner.classList.contains('rotate-y-180')) {
+          resetTilt()
+        }
+      }
+
+      wrapper.addEventListener('click', toggle)
+      wrapper.addEventListener('keydown', e => {
+        const ke = e as KeyboardEvent
+        if (ke.key === 'Enter' || ke.key === ' ') {
+          ke.preventDefault()
+          toggle()
         }
       })
     })

@@ -23,6 +23,19 @@
   --holo-inset: 12px;
   /* Inner radius so holo corners match inset art */
   --holo-radius: max(0px, calc(var(--card-radius) - var(--holo-inset)));
+
+  /* Pointer tilt (±10°); set from JS on front face only */
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+}
+
+/* Nested tilt: fast transition while .card-flip-inner keeps long flip transition */
+.card-flip .card-flip-tilt {
+  width: 100%;
+  height: 100%;
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.12s ease-out;
 }
 
 .card-flip .card__shine,
@@ -37,7 +50,11 @@
 .card-flip .card__shine,
 .card-flip .card__glare {
   position: absolute;
-  inset: var(--holo-inset);
+  top: 51px;
+  left: 23px;
+  right: 23px;
+  bottom: 277px;
+  /* inset: var(--holo-inset); */
 }
 
 .card-flip .card__shine {
