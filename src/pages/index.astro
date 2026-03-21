@@ -53,6 +53,22 @@ const images = [
 
     <div class="min-h-[30vh] flex-grow"></div>
 
+    <p
+      class="motion-https-hint text-muted-foreground mb-2 hidden text-center text-sm"
+    >
+      Card tilt and holo need a secure page (HTTPS).
+    </p>
+    <p
+      class="motion-enable-wrap text-muted-foreground mb-2 hidden text-center text-sm"
+    >
+      <button
+        type="button"
+        class="motion-enable-btn text-primary hover:text-primary-selected underline decoration-primary/60 underline-offset-2 hover:decoration-primary"
+      >
+        Enable tilt &amp; holo (device motion)
+      </button>
+    </p>
+
     <div class="card-scroll-section flex w-full items-center gap-3">
       <button
         type="button"
@@ -302,16 +318,52 @@ const images = [
       smoothOrientPx = targetPx
       smoothOrientPy = targetPy
       refreshMobileHoloFromGyro()
+      updateMotionHintVisibility()
     }
 
-    /**
-     * iOS: requestPermission() must start from a real user gesture. Safari is
-     * happiest with touchstart; pointerdown also fires but can double-call if
-     * we listen to both — use a single in-flight guard.
-     */
     let motionPermissionInFlight = false
     let motionPermissionDenied = false
 
+    function orientationNeedsExplicitPermission(): boolean {
+      const DOE = DeviceOrientationEvent as unknown as typeof DeviceOrientationEvent & {
+        requestPermission?: () => Promise<'granted' | 'denied'>
+      }
+      return typeof DOE.requestPermission === 'function'
+    }
+
+    function updateMotionHintVisibility() {
+      const httpsHint = document.querySelector('.motion-https-hint')
+      const wrap = document.querySelector('.motion-enable-wrap')
+      if (!(httpsHint instanceof HTMLElement) || !(wrap instanceof HTMLElement))
+        return
+
+      if (!useOrientationHolo) {
+        httpsHint.classList.add('hidden')
+        wrap.classList.add('hidden')
+        return
+      }
+
+      if (!window.isSecureContext) {
+        httpsHint.classList.remove('hidden')
+        wrap.classList.add('hidden')
+        return
+      }
+
+      httpsHint.classList.add('hidden')
+
+      const showButton =
+        orientationNeedsExplicitPermission() &&
+        !orientationListenerActive &&
+        !motionPermissionDenied
+
+      wrap.classList.toggle('hidden', !showButton)
+    }
+
+    /**
+     * iOS Safari: call requestPermission() from a direct tap (button click).
+     * Delegated document touchstart often does not show the system prompt once
+     * the page is fully loaded / after deploy.
+     */
     function tryRequestDeviceOrientationFromGesture() {
       if (
         orientationListenerActive ||
@@ -332,19 +384,48 @@ const images = [
             motionPermissionInFlight = false
             if (res === 'granted') attachOrientationListener()
             else if (res === 'denied') motionPermissionDenied = true
+            updateMotionHintVisibility()
           })
         } else {
           attachOrientationListener()
         }
       } catch {
         motionPermissionInFlight = false
+        updateMotionHintVisibility()
       }
     }
 
+    function initMotionPromptUi() {
+      updateMotionHintVisibility()
+      const motionBtn = document.querySelector('.motion-enable-btn')
+      if (motionBtn instanceof HTMLButtonElement) {
+        motionBtn.addEventListener('click', e => {
+          e.preventDefault()
+          e.stopPropagation()
+          tryRequestDeviceOrientationFromGesture()
+        })
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initMotionPromptUi)
+    } else {
+      initMotionPromptUi()
+    }
+
+    /** Fallback: first touch anywhere still tries (Android / older WebKit) */
     if (useOrientationHolo) {
       const gestureOpts = { capture: true, passive: true } as const
-      document.addEventListener('touchstart', tryRequestDeviceOrientationFromGesture, gestureOpts)
-      document.addEventListener('pointerdown', tryRequestDeviceOrientationFromGesture, gestureOpts)
+      document.addEventListener(
+        'touchstart',
+        tryRequestDeviceOrientationFromGesture,
+        gestureOpts
+      )
+      document.addEventListener(
+        'pointerdown',
+        tryRequestDeviceOrientationFromGesture,
+        gestureOpts
+      )
     }
 
     const wrappers = document.querySelectorAll('.card-flip')
