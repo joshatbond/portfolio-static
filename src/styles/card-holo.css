@@ -262,3 +262,59 @@
     filter: brightness(0.71) contrast(2.35) saturate(1.88);
   }
 }
+
+/*
+ * iOS WebKit: harsh color bands on holo (shine + glare) from 8-bit compositing +
+ * mix-blend-mode; intermittent “bad” frames from unstable layer promotion.
+ * - Stable layers + isolation
+ * - Softer radial ramps on glare (main banding source)
+ */
+@supports (-webkit-touch-callout: none) {
+  .card-flip .card-flip-tilt {
+    isolation: isolate;
+  }
+
+  .card-flip .card__shine,
+  .card-flip .card__shine::before,
+  .card-flip .card__shine::after,
+  .card-flip .card__glare,
+  .card-flip .card__glare::after {
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  .card-flip .card__glare {
+    background-image: radial-gradient(
+      farthest-corner circle at var(--pointer-x) var(--pointer-y),
+      hsla(204, 100%, 95%, 0.72) 0%,
+      hsla(208, 85%, 82%, 0.45) 12%,
+      hsla(220, 45%, 52%, 0.28) 28%,
+      hsla(250, 28%, 32%, 0.72) 52%,
+      hsla(250, 18%, 22%, 0.95) 78%,
+      hsla(250, 15%, 20%, 1) 100%
+    );
+  }
+
+  .card-flip .card__glare::after {
+    background-image: radial-gradient(
+      farthest-corner circle at var(--pointer-x) var(--pointer-y),
+      hsl(280, 100%, 96%) 0%,
+      hsl(280, 72%, 72%) 14%,
+      hsl(280, 45%, 42%) 32%,
+      hsl(280, 22%, 24%) 52%,
+      hsl(0, 0%, 14%) 72%,
+      hsl(0, 0%, 10%) 100%
+    );
+  }
+
+  /* Slightly lower contrast on cosmos stack — eases stripe banding with color-dodge */
+  .card-flip .card__shine {
+    filter: brightness(0.98) contrast(0.93) saturate(0.76);
+  }
+
+  .card-flip .card__shine::before,
+  .card-flip .card__shine::after {
+    filter: brightness(1.12) contrast(1.45) saturate(0.75);
+  }
+}
