@@ -167,8 +167,188 @@ const images = [
       toMax: number
     ) => toMin + (toMax - toMin) * ((value - fromMin) / (fromMax - fromMin))
 
+    const MAX_TILT_VERTICAL_DEG = 15
+    const MAX_TILT_HORIZONTAL_DEG = 30
+
+    /**
+     * Drive holo + tilt from gyro on real touch hardware.
+     * iOS Safari often reports (pointer: fine) + (hover: hover), so we also
+     * use maxTouchPoints — otherwise the permission hook never runs on iPhone.
+     */
+    const touchLikeDevice =
+      (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0) ||
+      window.matchMedia('(pointer: coarse)').matches ||
+      window.matchMedia('(hover: none)').matches
+
+    const useOrientationHolo =
+      typeof DeviceOrientationEvent !== 'undefined' && touchLikeDevice
+
+    type OrientationCard = {
+      wrapper: HTMLElement
+      inner: HTMLElement
+      visibility: { mostly: boolean }
+    }
+
+    const gyroCards: OrientationCard[] = []
+
+    let orientationListenerActive = false
+    let latestGamma = 0
+    let latestBeta = 90
+    let smoothOrientPx = 50
+    let smoothOrientPy = 50
+    const ORIENT_SMOOTH = 0.22
+
+    function resetTiltOnWrapper(wrapper: HTMLElement) {
+      wrapper.style.setProperty('--tilt-x', '0deg')
+      wrapper.style.setProperty('--tilt-y', '0deg')
+    }
+
+    function applyHoloFromPercent(
+      wrapper: HTMLElement,
+      inner: HTMLElement,
+      px: number,
+      py: number
+    ) {
+      const pxC = clamp(round(px), 0, 100)
+      const pyC = clamp(round(py), 0, 100)
+      const fromLeft = pxC / 100
+      const fromTop = pyC / 100
+      const fromCenter = clamp(
+        Math.sqrt((pyC - 50) ** 2 + (pxC - 50) ** 2) / 50,
+        0,
+        1
+      )
+      wrapper.style.setProperty('--pointer-x', `${pxC}%`)
+      wrapper.style.setProperty('--pointer-y', `${pyC}%`)
+      wrapper.style.setProperty(
+        '--background-x',
+        `${adjust(pxC, 0, 100, 37, 63)}%`
+      )
+      wrapper.style.setProperty(
+        '--background-y',
+        `${adjust(pyC, 0, 100, 33, 67)}%`
+      )
+      wrapper.style.setProperty('--pointer-from-left', String(fromLeft))
+      wrapper.style.setProperty('--pointer-from-top', String(fromTop))
+      wrapper.style.setProperty('--pointer-from-center', String(fromCenter))
+
+      if (inner.classList.contains('rotate-y-180')) {
+        const tiltY = clamp(
+          -((pxC - 50) / 50) * MAX_TILT_HORIZONTAL_DEG,
+          -MAX_TILT_HORIZONTAL_DEG,
+          MAX_TILT_HORIZONTAL_DEG
+        )
+        const tiltX = clamp(
+          ((pyC - 50) / 50) * MAX_TILT_VERTICAL_DEG,
+          -MAX_TILT_VERTICAL_DEG,
+          MAX_TILT_VERTICAL_DEG
+        )
+        wrapper.style.setProperty('--tilt-x', `${tiltX}deg`)
+        wrapper.style.setProperty('--tilt-y', `${tiltY}deg`)
+      } else {
+        resetTiltOnWrapper(wrapper)
+      }
+    }
+
+    function orientToPercent(gamma: number, beta: number) {
+      const targetPx = clamp(50 + (gamma / 42) * 50, 0, 100)
+      const betaRel = beta - 90
+      const targetPy = clamp(50 - (betaRel / 38) * 50, 0, 100)
+      return { targetPx, targetPy }
+    }
+
+    function refreshMobileHoloFromGyro() {
+      if (!useOrientationHolo) return
+      const useMotion = orientationListenerActive
+      for (const c of gyroCards) {
+        const show =
+          c.visibility.mostly && c.inner.classList.contains('rotate-y-180')
+        if (!show) {
+          c.wrapper.style.setProperty('--card-opacity', '0')
+          resetTiltOnWrapper(c.wrapper)
+          continue
+        }
+        c.wrapper.style.setProperty('--card-opacity', '1')
+        if (useMotion) {
+          applyHoloFromPercent(
+            c.wrapper,
+            c.inner,
+            smoothOrientPx,
+            smoothOrientPy
+          )
+        } else {
+          applyHoloFromPercent(c.wrapper, c.inner, 50, 50)
+        }
+      }
+    }
+
+    function onDeviceOrientation(e: DeviceOrientationEvent) {
+      if (e.gamma == null || e.beta == null) return
+      latestGamma = e.gamma
+      latestBeta = e.beta
+      const { targetPx, targetPy } = orientToPercent(e.gamma, e.beta)
+      smoothOrientPx += ORIENT_SMOOTH * (targetPx - smoothOrientPx)
+      smoothOrientPy += ORIENT_SMOOTH * (targetPy - smoothOrientPy)
+      refreshMobileHoloFromGyro()
+    }
+
+    function attachOrientationListener() {
+      if (orientationListenerActive || !useOrientationHolo) return
+      window.addEventListener('deviceorientation', onDeviceOrientation, {
+        passive: true,
+      })
+      orientationListenerActive = true
+      const { targetPx, targetPy } = orientToPercent(latestGamma, latestBeta)
+      smoothOrientPx = targetPx
+      smoothOrientPy = targetPy
+      refreshMobileHoloFromGyro()
+    }
+
+    /**
+     * iOS: requestPermission() must start from a real user gesture. Safari is
+     * happiest with touchstart; pointerdown also fires but can double-call if
+     * we listen to both — use a single in-flight guard.
+     */
+    let motionPermissionInFlight = false
+    let motionPermissionDenied = false
+
+    function tryRequestDeviceOrientationFromGesture() {
+      if (
+        orientationListenerActive ||
+        !useOrientationHolo ||
+        motionPermissionInFlight ||
+        motionPermissionDenied
+      )
+        return
+
+      const DOE = DeviceOrientationEvent as unknown as typeof DeviceOrientationEvent & {
+        requestPermission?: () => Promise<'granted' | 'denied'>
+      }
+
+      try {
+        if (typeof DOE.requestPermission === 'function') {
+          motionPermissionInFlight = true
+          void DOE.requestPermission().then(res => {
+            motionPermissionInFlight = false
+            if (res === 'granted') attachOrientationListener()
+            else if (res === 'denied') motionPermissionDenied = true
+          })
+        } else {
+          attachOrientationListener()
+        }
+      } catch {
+        motionPermissionInFlight = false
+      }
+    }
+
+    if (useOrientationHolo) {
+      const gestureOpts = { capture: true, passive: true } as const
+      document.addEventListener('touchstart', tryRequestDeviceOrientationFromGesture, gestureOpts)
+      document.addEventListener('pointerdown', tryRequestDeviceOrientationFromGesture, gestureOpts)
+    }
+
     const wrappers = document.querySelectorAll('.card-flip')
-    const visibleRatio = 0.5 
+    const visibleRatio = 0.5
 
     wrappers.forEach((wrapperEl, index) => {
       if (!(wrapperEl instanceof HTMLElement)) return
@@ -183,21 +363,24 @@ const images = [
       const front = tilt.children[1] as HTMLImageElement
       if (!front || front.tagName !== 'IMG') return
 
+      const visibility = { mostly: false }
+      gyroCards.push({ wrapper, inner, visibility })
+
       let imageReady = front.complete && front.naturalWidth > 0
-      let isMostlyVisible = false
       let didReveal = false
 
       const scheduleReveal = () => {
         setTimeout(
           () => {
             inner.classList.add('rotate-y-180')
+            if (useOrientationHolo) refreshMobileHoloFromGyro()
           },
           250 + index * 100
         )
       }
 
       const tryReveal = () => {
-        if (didReveal || !imageReady || !isMostlyVisible) return
+        if (didReveal || !imageReady || !visibility.mostly) return
         didReveal = true
         scheduleReveal()
         observer.unobserve(wrapper)
@@ -207,8 +390,9 @@ const images = [
         entries => {
           const entry = entries[0]
           if (!entry) return
-          isMostlyVisible = entry.intersectionRatio >= visibleRatio
+          visibility.mostly = entry.intersectionRatio >= visibleRatio
           tryReveal()
+          if (useOrientationHolo) refreshMobileHoloFromGyro()
         },
         {
           threshold: [0, 0.25, 0.5, 0.75, visibleRatio, 1],
@@ -230,98 +414,56 @@ const images = [
         tryReveal()
       }
 
-      /** Holo + tilt pointer → CSS vars (pokemon-cards-css style) */
-      let holoRaf = 0
-      let pendingXY: { x: number; y: number } | null = null
-      const maxTiltVerticalDeg = 15
-      const maxTiltHorizontalDeg = 30
+      if (!useOrientationHolo) {
+        let holoRaf = 0
+        let pendingXY: { x: number; y: number } | null = null
 
-      const resetTilt = () => {
-        wrapper.style.setProperty('--tilt-x', '0deg')
-        wrapper.style.setProperty('--tilt-y', '0deg')
-      }
-
-      const applyPointer = (clientX: number, clientY: number) => {
-        const rect = wrapper.getBoundingClientRect()
-        const ax = clientX - rect.left
-        const ay = clientY - rect.top
-        const px = clamp(round((100 / rect.width) * ax), 0, 100)
-        const py = clamp(round((100 / rect.height) * ay), 0, 100)
-        const fromLeft = px / 100
-        const fromTop = py / 100
-        const fromCenter = clamp(
-          Math.sqrt((py - 50) ** 2 + (px - 50) ** 2) / 50,
-          0,
-          1
-        )
-        wrapper.style.setProperty('--pointer-x', `${px}%`)
-        wrapper.style.setProperty('--pointer-y', `${py}%`)
-        wrapper.style.setProperty(
-          '--background-x',
-          `${adjust(px, 0, 100, 37, 63)}%`
-        )
-        wrapper.style.setProperty(
-          '--background-y',
-          `${adjust(py, 0, 100, 33, 67)}%`
-        )
-        wrapper.style.setProperty('--pointer-from-left', String(fromLeft))
-        wrapper.style.setProperty('--pointer-from-top', String(fromTop))
-        wrapper.style.setProperty('--pointer-from-center', String(fromCenter))
-
-        /* pokemon-cards-css style: rotateY from horizontal offset, rotateX from vertical */
-        if (inner.classList.contains('rotate-y-180')) {
-          const tiltY = clamp(
-            -((px - 50) / 50) * maxTiltHorizontalDeg,
-            -maxTiltHorizontalDeg,
-            maxTiltHorizontalDeg
-          )
-          const tiltX = clamp(
-            ((py - 50) / 50) * maxTiltVerticalDeg,
-            -maxTiltVerticalDeg,
-            maxTiltVerticalDeg
-          )
-          wrapper.style.setProperty('--tilt-x', `${tiltX}deg`)
-          wrapper.style.setProperty('--tilt-y', `${tiltY}deg`)
-        } else {
-          resetTilt()
+        const applyPointer = (clientX: number, clientY: number) => {
+          const rect = wrapper.getBoundingClientRect()
+          const ax = clientX - rect.left
+          const ay = clientY - rect.top
+          const px = clamp(round((100 / rect.width) * ax), 0, 100)
+          const py = clamp(round((100 / rect.height) * ay), 0, 100)
+          applyHoloFromPercent(wrapper, inner, px, py)
         }
-      }
 
-      const flushPointer = () => {
-        holoRaf = 0
-        if (pendingXY) {
-          applyPointer(pendingXY.x, pendingXY.y)
-          pendingXY = null
-        }
-      }
-
-      wrapper.addEventListener('pointerenter', () => {
-        wrapper.style.setProperty('--card-opacity', '1')
-      })
-
-      wrapper.addEventListener('pointermove', e => {
-        const pe = e as PointerEvent
-        pendingXY = { x: pe.clientX, y: pe.clientY }
-        if (!holoRaf) {
-          holoRaf = requestAnimationFrame(flushPointer)
-        }
-      })
-
-      wrapper.addEventListener('pointerleave', () => {
-        wrapper.style.setProperty('--card-opacity', '0')
-        resetTilt()
-        pendingXY = null
-        if (holoRaf) {
-          cancelAnimationFrame(holoRaf)
+        const flushPointer = () => {
           holoRaf = 0
+          if (pendingXY) {
+            applyPointer(pendingXY.x, pendingXY.y)
+            pendingXY = null
+          }
         }
-      })
+
+        wrapper.addEventListener('pointerenter', () => {
+          wrapper.style.setProperty('--card-opacity', '1')
+        })
+
+        wrapper.addEventListener('pointermove', e => {
+          const pe = e as PointerEvent
+          pendingXY = { x: pe.clientX, y: pe.clientY }
+          if (!holoRaf) {
+            holoRaf = requestAnimationFrame(flushPointer)
+          }
+        })
+
+        wrapper.addEventListener('pointerleave', () => {
+          wrapper.style.setProperty('--card-opacity', '0')
+          resetTiltOnWrapper(wrapper)
+          pendingXY = null
+          if (holoRaf) {
+            cancelAnimationFrame(holoRaf)
+            holoRaf = 0
+          }
+        })
+      }
 
       const toggle = () => {
         inner.classList.toggle('rotate-y-180')
         if (!inner.classList.contains('rotate-y-180')) {
-          resetTilt()
+          resetTiltOnWrapper(wrapper)
         }
+        if (useOrientationHolo) refreshMobileHoloFromGyro()
       }
 
       wrapper.addEventListener('click', toggle)
