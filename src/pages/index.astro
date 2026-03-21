@@ -380,12 +380,25 @@ const images = [
       try {
         if (typeof DOE.requestPermission === 'function') {
           motionPermissionInFlight = true
-          void DOE.requestPermission().then(res => {
+          const clearInFlight = () => {
             motionPermissionInFlight = false
-            if (res === 'granted') attachOrientationListener()
-            else if (res === 'denied') motionPermissionDenied = true
-            updateMotionHintVisibility()
-          })
+          }
+          const safetyTimer = window.setTimeout(clearInFlight, 8000)
+
+          void DOE
+            .requestPermission()
+            .then(res => {
+              window.clearTimeout(safetyTimer)
+              clearInFlight()
+              if (res === 'granted') attachOrientationListener()
+              else if (res === 'denied') motionPermissionDenied = true
+              updateMotionHintVisibility()
+            })
+            .catch(() => {
+              window.clearTimeout(safetyTimer)
+              clearInFlight()
+              updateMotionHintVisibility()
+            })
         } else {
           attachOrientationListener()
         }
@@ -399,11 +412,10 @@ const images = [
       updateMotionHintVisibility()
       const motionBtn = document.querySelector('.motion-enable-btn')
       if (motionBtn instanceof HTMLButtonElement) {
-        motionBtn.addEventListener('click', e => {
-          e.preventDefault()
-          e.stopPropagation()
-          tryRequestDeviceOrientationFromGesture()
-        })
+        const run = () => tryRequestDeviceOrientationFromGesture()
+        motionBtn.addEventListener('click', run)
+        /* iOS: ensure handler runs from the same tap even if click is flaky */
+        motionBtn.addEventListener('touchend', run, { passive: true })
       }
     }
 
@@ -413,8 +425,13 @@ const images = [
       initMotionPromptUi()
     }
 
-    /** Fallback: first touch anywhere still tries (Android / older WebKit) */
-    if (useOrientationHolo) {
+    /**
+     * Only auto-request on first touch when the browser does not need an
+     * explicit iOS-style prompt. Otherwise document capture touchstart runs
+     * before the button, sets motionPermissionInFlight, and Safari never
+     * completes the promise — the Enable button then appears dead.
+     */
+    if (useOrientationHolo && !orientationNeedsExplicitPermission()) {
       const gestureOpts = { capture: true, passive: true } as const
       document.addEventListener(
         'touchstart',
