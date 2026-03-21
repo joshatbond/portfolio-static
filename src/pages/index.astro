@@ -78,12 +78,12 @@ const images = [
 
       <div class="relative min-w-0 flex-1">
         <div
-          class="card-scroll-track scrollbar-hide auto-cols-full  relative z-0 grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded p-4"
+          class="card-scroll-track scrollbar-hide relative z-0 grid touch-pan-x snap-x snap-mandatory grid-flow-col gap-8 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded p-4 [grid-auto-columns:min(100%,374px)]"
         >
           {
             images.map(({ front, back, cosmosBg }) => (
               <div
-                class="card-flip group h-[561px] w-[374px] cursor-pointer snap-center bg-transparent select-none perspective-distant [&_img]:pointer-events-none [&_img]:[-webkit-user-drag:none]"
+                class="card-flip group aspect-[374/561] w-full min-w-0 max-w-[374px] cursor-pointer snap-center bg-transparent select-none perspective-distant [&_img]:pointer-events-none [&_img]:[-webkit-user-drag:none]"
                 role="button"
                 tabindex="0"
                 aria-label="Flip card"
@@ -121,12 +121,12 @@ const images = [
         </div>
 
         <div
-          class="card-scroll-hint-left pointer-events-none absolute inset-y-3 left-0 z-[2] w-12 rounded-l-[0.375rem] bg-gradient-to-r from-[var(--bg-body)] via-[var(--bg-body)]/80 to-transparent opacity-0 transition-opacity duration-300"
+          class="card-scroll-hint-left pointer-events-none absolute inset-y-3 left-0 z-[2] w-12 rounded-l-[0.375rem] bg-gradient-to-r from-[var(--bg-body)] via-[var(--bg-body)]/50 to-transparent opacity-0 transition-opacity duration-300"
           aria-hidden="true"
         >
         </div>
         <div
-          class="card-scroll-hint-right pointer-events-none absolute inset-y-3 right-0 z-[2] w-12 rounded-r-[0.375rem] bg-gradient-to-l from-[var(--bg-body)] via-[var(--bg-body)]/80 to-transparent opacity-0 transition-opacity duration-300"
+          class="card-scroll-hint-right pointer-events-none absolute inset-y-3 right-0 z-[2] w-12 rounded-r-[0.375rem] bg-gradient-to-l from-[var(--bg-body)] via-[var(--bg-body)]/50 to-transparent opacity-0 transition-opacity duration-300"
           aria-hidden="true"
         >
         </div>
@@ -364,9 +364,9 @@ const images = [
         nextBtn.disabled = !canRight
         prevBtn.setAttribute('aria-disabled', String(!canLeft))
         nextBtn.setAttribute('aria-disabled', String(!canRight))
-        hintLeft?.classList.toggle('opacity-100', canLeft)
+        hintLeft?.classList.toggle('opacity-40', canLeft)
         hintLeft?.classList.toggle('opacity-0', !canLeft)
-        hintRight?.classList.toggle('opacity-100', canRight)
+        hintRight?.classList.toggle('opacity-40', canRight)
         hintRight?.classList.toggle('opacity-0', !canRight)
       }
 
