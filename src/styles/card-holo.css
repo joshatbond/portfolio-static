@@ -236,3 +236,27 @@
   mix-blend-mode: soft-light;
   opacity: calc(1 - var(--pointer-from-top) * 0.75);
 }
+
+/* Small and below: reduce holo intensity ~40% (mobile screens often brighter) */
+@media (max-width: 639px) {
+  .card-flip .card__shine {
+    opacity: calc(var(--card-opacity) * 0.6);
+  }
+
+  .card-flip .card__shine::before {
+    filter: brightness(0.85) contrast(1.2) saturate(0.7);
+  }
+
+  .card-flip .card__shine::after {
+    filter: brightness(0.85) contrast(1.2) saturate(0.7);
+  }
+
+  .card-flip .card__glare {
+    opacity: calc(var(--card-opacity) * (0.25 + var(--pointer-from-center)) * 0.6);
+  }
+
+  .card-flip .card__glare::after {
+    opacity: calc((1 - var(--pointer-from-top) * 0.75) * 0.6);
+    filter: brightness(0.55) contrast(1.75) saturate(1.4);
+  }
+}
