@@ -183,7 +183,7 @@ const images = [
       toMax: number
     ) => toMin + (toMax - toMin) * ((value - fromMin) / (fromMax - fromMin))
 
-    const MAX_TILT_VERTICAL_DEG = 15
+    const MAX_TILT_VERTICAL_DEG = 30
     const MAX_TILT_HORIZONTAL_DEG = 30
 
     /**
@@ -213,6 +213,10 @@ const images = [
     let smoothOrientPx = 50
     let smoothOrientPy = 50
     const ORIENT_SMOOTH = 0.22
+
+    /** Zero point: device orientation when a card flips to front (baseline) */
+    let gyroZeroGamma: number | null = null
+    let gyroZeroBeta: number | null = null
 
     function resetTiltOnWrapper(wrapper: HTMLElement) {
       wrapper.style.setProperty('--tilt-x', '0deg')
@@ -266,9 +270,27 @@ const images = [
       }
     }
 
+    /**
+     * Capture current device orientation as the "zero" baseline. Called when
+     * a card flips to show its front — all subsequent tilts are relative to this.
+     */
+    function captureGyroZeroPoint() {
+      if (!orientationListenerActive) return
+      gyroZeroGamma = latestGamma
+      gyroZeroBeta = latestBeta
+    }
+
     function orientToPercent(gamma: number, beta: number) {
-      const targetPx = clamp(50 + (gamma / 42) * 50, 0, 100)
-      const betaRel = beta - 90
+      let gammaRel = gamma
+      let betaRel = beta - 90
+
+      /* If zero point is set, calculate tilt relative to that baseline */
+      if (gyroZeroGamma !== null && gyroZeroBeta !== null) {
+        gammaRel = gamma - gyroZeroGamma
+        betaRel = beta - gyroZeroBeta
+      }
+
+      const targetPx = clamp(50 + (gammaRel / 42) * 50, 0, 100)
       const targetPy = clamp(50 - (betaRel / 38) * 50, 0, 100)
       return { targetPx, targetPy }
     }
@@ -314,9 +336,9 @@ const images = [
         passive: true,
       })
       orientationListenerActive = true
-      const { targetPx, targetPy } = orientToPercent(latestGamma, latestBeta)
-      smoothOrientPx = targetPx
-      smoothOrientPy = targetPy
+      /* Don't set zero point here — wait for first card to flip to front */
+      smoothOrientPx = 50
+      smoothOrientPy = 50
       refreshMobileHoloFromGyro()
       updateMotionHintVisibility()
     }
@@ -471,7 +493,10 @@ const images = [
         setTimeout(
           () => {
             inner.classList.add('rotate-y-180')
-            if (useOrientationHolo) refreshMobileHoloFromGyro()
+            if (useOrientationHolo) {
+              captureGyroZeroPoint()
+              refreshMobileHoloFromGyro()
+            }
           },
           250 + index * 100
         )
@@ -557,9 +582,16 @@ const images = [
       }
 
       const toggle = () => {
+        const wasFront = inner.classList.contains('rotate-y-180')
         inner.classList.toggle('rotate-y-180')
-        if (!inner.classList.contains('rotate-y-180')) {
+        const isFront = inner.classList.contains('rotate-y-180')
+        if (!isFront) {
           resetTiltOnWrapper(wrapper)
+        } else if (!wasFront && isFront) {
+          /* Card just flipped to front: capture current orientation as zero */
+          if (useOrientationHolo) {
+            captureGyroZeroPoint()
+          }
         }
         if (useOrientationHolo) refreshMobileHoloFromGyro()
       }
