@@ -168,7 +168,7 @@ const images = [
     ) => toMin + (toMax - toMin) * ((value - fromMin) / (fromMax - fromMin))
 
     const wrappers = document.querySelectorAll('.card-flip')
-    const visibleRatio = 0.8
+    const visibleRatio = 0.5 
 
     wrappers.forEach((wrapperEl, index) => {
       if (!(wrapperEl instanceof HTMLElement)) return
