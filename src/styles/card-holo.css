@@ -50,10 +50,10 @@
 .card-flip .card__shine,
 .card-flip .card__glare {
   position: absolute;
-  top: 51px;
-  left: 23px;
-  right: 23px;
-  bottom: 277px;
+  top: 9%;
+  left: 6%;
+  right: 6%;
+  bottom: 49%;
   /* inset: var(--holo-inset); */
 }
 
