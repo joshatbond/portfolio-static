@@ -537,49 +537,55 @@ const images = [
         tryReveal()
       }
 
-      if (!useOrientationHolo) {
-        let holoRaf = 0
-        let pendingXY: { x: number; y: number } | null = null
+      /** Pointer-based holo/tilt: always enabled for mouse, or when orientation isn't active */
+      let holoRaf = 0
+      let pendingXY: { x: number; y: number } | null = null
 
-        const applyPointer = (clientX: number, clientY: number) => {
-          const rect = wrapper.getBoundingClientRect()
-          const ax = clientX - rect.left
-          const ay = clientY - rect.top
-          const px = clamp(round((100 / rect.width) * ax), 0, 100)
-          const py = clamp(round((100 / rect.height) * ay), 0, 100)
-          applyHoloFromPercent(wrapper, inner, px, py)
-        }
-
-        const flushPointer = () => {
-          holoRaf = 0
-          if (pendingXY) {
-            applyPointer(pendingXY.x, pendingXY.y)
-            pendingXY = null
-          }
-        }
-
-        wrapper.addEventListener('pointerenter', () => {
-          wrapper.style.setProperty('--card-opacity', '1')
-        })
-
-        wrapper.addEventListener('pointermove', e => {
-          const pe = e as PointerEvent
-          pendingXY = { x: pe.clientX, y: pe.clientY }
-          if (!holoRaf) {
-            holoRaf = requestAnimationFrame(flushPointer)
-          }
-        })
-
-        wrapper.addEventListener('pointerleave', () => {
-          wrapper.style.setProperty('--card-opacity', '0')
-          resetTiltOnWrapper(wrapper)
-          pendingXY = null
-          if (holoRaf) {
-            cancelAnimationFrame(holoRaf)
-            holoRaf = 0
-          }
-        })
+      const applyPointer = (clientX: number, clientY: number) => {
+        const rect = wrapper.getBoundingClientRect()
+        const ax = clientX - rect.left
+        const ay = clientY - rect.top
+        const px = clamp(round((100 / rect.width) * ax), 0, 100)
+        const py = clamp(round((100 / rect.height) * ay), 0, 100)
+        applyHoloFromPercent(wrapper, inner, px, py)
       }
+
+      const flushPointer = () => {
+        holoRaf = 0
+        if (pendingXY) {
+          applyPointer(pendingXY.x, pendingXY.y)
+          pendingXY = null
+        }
+      }
+
+      wrapper.addEventListener('pointerenter', e => {
+        const pe = e as PointerEvent
+        /* On touch devices with orientation, only use pointer for mouse/stylus */
+        if (useOrientationHolo && pe.pointerType === 'touch') return
+        wrapper.style.setProperty('--card-opacity', '1')
+      })
+
+      wrapper.addEventListener('pointermove', e => {
+        const pe = e as PointerEvent
+        /* On touch devices with orientation, only use pointer for mouse/stylus */
+        if (useOrientationHolo && pe.pointerType === 'touch') return
+        pendingXY = { x: pe.clientX, y: pe.clientY }
+        if (!holoRaf) {
+          holoRaf = requestAnimationFrame(flushPointer)
+        }
+      })
+
+      wrapper.addEventListener('pointerleave', e => {
+        const pe = e as PointerEvent
+        if (useOrientationHolo && pe.pointerType === 'touch') return
+        wrapper.style.setProperty('--card-opacity', '0')
+        resetTiltOnWrapper(wrapper)
+        pendingXY = null
+        if (holoRaf) {
+          cancelAnimationFrame(holoRaf)
+          holoRaf = 0
+        }
+      })
 
       const toggle = () => {
         const wasFront = inner.classList.contains('rotate-y-180')
