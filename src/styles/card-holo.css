@@ -264,26 +264,12 @@
 }
 
 /*
- * iOS WebKit: harsh color bands on holo (shine + glare) from 8-bit compositing +
- * mix-blend-mode; intermittent “bad” frames from unstable layer promotion.
- * - Stable layers + isolation
- * - Softer radial ramps on glare (main banding source)
+ * iOS WebKit: color banding on holo from 8-bit compositing + mix-blend-mode.
+ * Do NOT use isolation / translateZ / extra backface-visibility here — they
+ * break preserve-3d + card flip and can hide the front face on iOS.
+ * Softer ramps + slightly gentler filters only.
  */
 @supports (-webkit-touch-callout: none) {
-  .card-flip .card-flip-tilt {
-    isolation: isolate;
-  }
-
-  .card-flip .card__shine,
-  .card-flip .card__shine::before,
-  .card-flip .card__shine::after,
-  .card-flip .card__glare,
-  .card-flip .card__glare::after {
-    transform: translate3d(0, 0, 0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-  }
-
   .card-flip .card__glare {
     background-image: radial-gradient(
       farthest-corner circle at var(--pointer-x) var(--pointer-y),
